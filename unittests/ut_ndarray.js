@@ -28,6 +28,27 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(a, [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     }
 
+    test_flatten(){
+        const a1 = [[[1], [2]], [[3], [4]]];
+        let b1 = nj.array(a1);
+        let c1 = b1.flatten();
+
+        const a2 = [[1, 2], [3, 4]];
+        let b2 = nj.array(a2);
+        let c2 = b2.flatten();
+
+        nj.assertArrayEqual(c1, [1, 2, 3, 4])
+        nj.assertArrayEqual(c2, [1, 2, 3, 4])
+    }
+
+    test_reshape(){
+        const a = [[[1], [2]], [[3], [4]], [[5], [6]]];
+        const b = nj.array(a);
+        let c = b.reshape([2, 3]);
+
+        nj.assertArrayEqual(c, [[1, 2, 3], [4, 5, 6]]);
+    }
+
     test_add(){
         let a = nj.array([[1, 2], [3, 4]]);
         let b = nj.array([[1, 1], [2, 2]]);        
@@ -71,6 +92,30 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(b, [[1, 0, 0], [0, 1, 0]]);
     }
 
+    test_transpose(){
+        let a1 = nj.array([[[1], [2], [3]], [[4], [5], [6]]]);
+        let b1 = a1.T;      // equivalent to a1.transpose();
+        nj.assertArrayEqual(b1, [[[1, 4], [2, 5], [3, 6]]]);
+
+        let a2 = nj.array([[[1], [2], [3]], [[4], [5], [6]]]);
+        let b2 = a2.transpose([0, 2, 1]);
+        nj.assertArrayEqual(b2, [[[1, 2, 3]], [[4, 5, 6]]]);
+
+        let a3 = nj.array([[[1, 2], [3, 4], [5, 6]], 
+                           [[7, 8], [9, 10], [11, 12]]]);
+                           
+        let b3 = a3.transpose([1, 2, 0]);
+        nj.assertArrayEqual(b3, [[[1,  7], [2,  8]],
+                                 [[3,  9], [4, 10]], 
+                                 [[5, 11], [6, 12]]]);
+
+        let b4 = a3.transpose([0, 2, 1]);
+        nj.assertArrayEqual(b4, [[[1,  3,  5],
+                                  [2,  4,  6]],
+                                 [[7,  9, 11],
+                                  [8, 10, 12]]]);
+    }
+
     test_toString(){
         let a = nj.zeros([2, 2, 1]);
 
@@ -93,11 +138,11 @@ class ut_numjs extends ut.htest
         const c0 = 1.0;
         const c1 = 0.01;
         const c2 = 0.001;
+        const N = 3;
+        let a = nj.zeros([N, 3]);
+        let b = nj.zeros([N, 1]);
 
-        let a = nj.zeros([3, 3]);
-        let b = nj.zeros([3, 1]);
-
-        for(let i = 0; i < 3; i++){
+        for(let i = 0; i < N; i++){
             const x = i*10;
             a[i][0] = 1.0;
             a[i][1] = x;
@@ -107,6 +152,30 @@ class ut_numjs extends ut.htest
         }
 
         const x = nj.linalg.solve(a, b);
+
+        nj.assertArrayNear(x, [[c0], [c1], [c2]], 1e-6);
+    }
+
+    test_linalg_solve2(){
+        // 2nd order polynomial fitting test.
+        const c0 = 1.0;
+        const c1 = 0.01;
+        const c2 = 0.001;
+        const N = 10;
+
+        let a = nj.zeros([N, 3]);
+        let b = nj.zeros([N, 1]);
+
+        for(let i = 0; i < N; i++){
+            const x = i*10;
+            a[i][0] = 1.0;
+            a[i][1] = x;
+            a[i][2] = Math.pow(x,2);
+            
+            b[i][0] = c0 + (c1*x) + (c2*Math.pow(x,2));
+        }
+
+        const x = nj.linalg.solve(nj.matmul(a.T, a), nj.matmul(a.T, b));
 
         nj.assertArrayNear(x, [[c0], [c1], [c2]], 1e-6);
     }

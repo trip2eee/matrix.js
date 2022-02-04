@@ -114,8 +114,8 @@ function inv(a){
 
 /**
  * @brief This function solve a linear matrix equation ax = b.
- * @param a (in, ndarray) Coefficient matrix.
- * @param b (in, ndarray) Ordinate or 'dependent variable' values.
+ * @param a (in, ndarray) MxM Coefficient matrix.
+ * @param b (in, ndarray) Mx1 Ordinate or 'dependent variable' values.
  * @return Solution to the equation ax = b.
  */
 function solve(a, b){

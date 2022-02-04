@@ -21,7 +21,146 @@ class ndarray{
         }else{
             this.shape = [];
         }
-        this.value = value;        
+        this.value = value;
+
+        Object.defineProperty(this, 'T', {
+            get: function() {
+                return this.transpose();
+            }.bind(this)
+        });
+    }
+    
+    /**
+     * @brief This method returns a copy of the array collapsed into one dimension.
+     * @return ndarray. A copy of the input array, flattened to one dimension.
+     */
+    flatten(){
+        let len = 1;
+        for(let i = 0; i < this.shape.length; i++){
+            len *= this.shape[i];
+        }
+        let y_flat = [];
+        
+        let stack_x = [];
+        let stack_d = [];
+        for(let i = (this.shape[0]-1); i >= 0; i--){
+            stack_x.push(this.value[i]);
+            stack_d.push(0);
+        }
+        while(stack_x.length > 0){
+            let x = stack_x.pop();
+            let d = stack_d.pop();
+
+            if(d < (this.shape.length-2)){
+                for(let i = (x.length-1); i >= 0; i--){
+                    stack_x.push(x[i]);
+                    stack_d.push(d+1);
+                }
+            }else{
+                for(let i = 0; i < x.length; i++){
+                    y_flat.push(x[i]);
+                }
+            }
+        }
+        let z = new ndarray(y_flat);
+        return z;
+    }
+
+    /**
+     * @brief This method returns an array containing the same data with a new shape.
+     * @param shape [in] a new shape.
+     */
+    reshape(shape){
+        let x_flat = this.flatten();
+        let idx = 0;
+
+        let z = zeros(shape);
+        let stack_x = [];
+        let stack_d = [];
+
+        for(let i = (z.shape[0]-1); i >= 0; i--){
+            stack_x.push(z[i]);
+            stack_d.push(0);
+        }
+
+        while(stack_x.length > 0){
+            let x = stack_x.pop();
+            let d = stack_d.pop();
+
+            if(d < shape.length-2){
+                for(let i = (x.length-1); i >= 0; i--){
+                    stack_x.push(x[i]);
+                    stack_d.push(d+1);
+                }
+            }else{
+                for(let i = 0; i < x.length; i++){
+                    x[i] = x_flat[idx];
+                    idx++;
+                }
+            }
+        }
+        return z;
+    }
+
+    /**
+     * @brief This method reverses or permutes the axes of an array; returns the modified array.
+     * @param axes (null, array of integers) null or no argument: reverses the order of the axes. For 2D array, this method gives the matrix transpose.
+     *                                       list of integers: i in the j-th place in the list means a's i-th axis becomes a.transpose()'s j-th axis.
+     * @returns The array itself with its axes permuted.
+     */
+    transpose(axes=null){
+        if(null == axes){
+            axes = [];
+            for(let i = this.shape.length-1; i >= 0; i--){
+                axes.push(i);
+            }
+        }
+        let shape = Array(this.shape.length);
+        for(let i = 0; i < shape.length; i++){
+            shape[i] = this.shape[axes[i]];
+        }
+        let z = zeros(shape);
+
+        let stack_y = [];
+        let stack_d = [];
+        let stack_src = [];
+
+        for(let i = (z.shape[0]-1); i >= 0; i--){
+            stack_y.push(z.value[i]);
+            let src = new Array(this.shape.length);
+            src[axes[0]] = i;
+            stack_src.push(src);
+            stack_d.push(1);
+        }
+        
+        while(stack_y.length > 0){
+            let y = stack_y.pop();
+            let src = stack_src.pop();
+            let d = stack_d.pop();
+
+            if(d < (shape.length-1)){
+                for(let i = (y.length-1); i >= 0; i--){
+                    let src1 = src.slice();
+                    src1[axes[d]] = i;
+
+                    stack_y.push(y[i]);
+                    stack_d.push(d+1);
+                    stack_src.push(src1);
+                }
+            }else{
+
+                for(let i = 0; i < y.length; i++){
+                    src[axes[d]] = i;
+                    let val = this.value;
+                    for(let j = 0; j < shape.length; j++){
+                        val = val[src[j]];
+                    }
+                    y[i] = val;
+                }
+            }
+        }
+
+        return z;
     }
 
     toString(){    
@@ -76,7 +215,6 @@ class ndarray{
         return str;
     }
 };
-
 
 /**
  * @brief This function returns ndarray with the given array.
@@ -470,7 +608,9 @@ function test_array_equal(x, y, index, eps){
         for(let i = 0; i < x.length; i++){
             let new_index = index.slice();
             new_index.push(i);
-            equal = test_array_equal(x[i], y[i], new_index, eps);
+            if(false == test_array_equal(x[i], y[i], new_index, eps)){
+                equal = false;
+            }
         }
     }else{
         // if scalar
@@ -551,9 +691,18 @@ function assertArrayNear(x, y, eps){
     }
 }
 
+function reshape(a, shape){
+    return a.reshape(shape);
+}
+
+function transpose(a, axes=null){
+    return a.transpose(axes);
+}
+
 var linalg = require('./linalg.js');
 module.exports = {array, zeros, ones, copy, eye,
     add, sub, mul, div, matmul,
+    reshape, transpose, 
     linalg,
     assertArrayEqual, assertArrayNear};
 
