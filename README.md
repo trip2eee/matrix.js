@@ -18,11 +18,11 @@ The following functions are implemented. Their functions do the same operations 
 - ones()
 - copy()
 - eye()
-- add()
-- sub()
-- mul()
-- div()
-- matmul()
+- add() - element wise addition.
+- sub() - element wise subtraction.
+- mul() - element wise multiplication.
+- div() - element wise division.
+- matmul() - matrix multiplcation.
 - reshape()
 - transpose()
 - linalg.inv()
