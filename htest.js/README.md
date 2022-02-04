@@ -3,6 +3,8 @@ Javascript version of [htest](https://github.com/trip2eee/htest).
 
 It mimics interfaces of google test and python unittest frameworks for easy use.
 
+<img src='images/htestjs.png' width='300px'>
+
 ## Assertions
 This unit test framework provides assertions in pairs: expect*() and assert*() as googletest does.
 

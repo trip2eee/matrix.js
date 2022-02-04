@@ -51,10 +51,12 @@ class htest{
             console.log(strHeader + ' Running ' + this.__test_cases.length + ' test');
         }
         
+        const t_start = performance.now();
 
         for(let i = 0; i < this.__test_cases.length; i++){
             console.log(strRun + ' ' + this.__test_cases[i]);
             this.__is_success = true;
+            const t_start_test = performance.now();
 
             // prepare for test.
             this.SetUp();
@@ -63,26 +65,36 @@ class htest{
             try{
                 this[this.__test_cases[i]]();
             }catch(error) {
+                // If exeption was thrown.
+                this.__is_success = false;  // Set success flag to be failed.
                 console.error(error);
             }
 
             // release resources.
             this.TearDown();
+            
+            const t_end_test = performance.now();
+            const t_test = (t_end_test - t_start_test);
+            const strTime = ' (' + t_test.toFixed(0) + ')';
 
+            // if the test case is failed.
             if(false == this.__is_success){
                 this.__num_failed++;
                 this.__list_failed.push(this.__test_cases[i]);
-                console.log(strFAIL + ' ' + this.__test_cases[i]);
+                console.log(strFAIL + ' ' + this.__test_cases[i] + strTime);
             }
             else{
-                console.log(strOK + ' ' + this.__test_cases[i]);
-            }            
+                console.log(strOK + ' ' + this.__test_cases[i] + strTime);
+            }
         }
-
+        
+        const t_end = performance.now();
+        const t_total = t_end - t_start;
+        const strTotalTime = ' (' + t_total.toFixed(0) + ' ms total)';
         if(this.__test_cases.length > 1){
-            console.log(strHeader + ' ' + this.__test_cases.length + ' tests ran');
+            console.log(strHeader + ' ' + this.__test_cases.length + ' tests ran' + strTotalTime);
         }else{
-            console.log(strHeader + ' ' + this.__test_cases.length + ' test ran');
+            console.log(strHeader + ' ' + this.__test_cases.length + ' test ran' + strTotalTime);
         }
 
         if((this.__test_cases.length - this.__num_failed) > 1){
@@ -117,24 +129,28 @@ class htest{
     
     expectEqual(x, y){
         if(x != y){
+            console.log(x + ' != ' + y)
             this.__expectFail();
         }
     }
 
     assertEqual(x, y){
         if(x != y){
+            console.log(x + ' != ' + y)
             this.__assertFail();
         }
     }
 
     expectNear(x, y, eps){
         if(Math.abs(x - y) > eps){
+            console.log('abs( ' + x + ' - ' + y + ' ) > ' + eps);
             this.__expectFail();
         }
     }
 
     assertNear(x, y){
         if(Math.abs(x - y) > eps){
+            console.log('abs( ' + x + ' - ' + y + ' ) > ' + eps);
             this.__assertFail();
         }
     }
@@ -177,3 +193,4 @@ class htest{
 };
 
 module.exports = { htest };
+
