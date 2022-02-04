@@ -1,3 +1,9 @@
+/**
+ * @file ut_ndarray.js
+ * @brief Multidimensional array unit test.
+ * @Author Jongmin Park
+ */
+
 var nj = require('../num.js/num');
 var ut = require('../htest.js/htest');
 

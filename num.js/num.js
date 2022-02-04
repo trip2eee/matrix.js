@@ -1,7 +1,7 @@
 /**
  * @file num.js
  * @brief num.js - Matrix library for Javascript.
- * @Author Jongmin Park (trip2eee@gmail.com)
+ * @Author Jongmin Park
  */
 
 class ndarray{

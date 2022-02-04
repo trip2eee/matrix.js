@@ -1,4 +1,10 @@
   /**
+ * @file linalg.js
+ * @brief Linear algebra module.
+ * @Author Jongmin Park
+ */
+  
+  /**
      * @brief This method decomposes matrix into PA = LU
      * @param P  [in] Permutation
      * @param LU [in/out] Decomposed matrix. Lower triangular part: L, Upper triangular part: P.
