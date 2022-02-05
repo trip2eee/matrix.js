@@ -40,18 +40,12 @@ class ndarray{
             len *= this.shape[i];
         }
         let y_flat = [];
-        
-        let stack_x = [];
-        let stack_d = [];
-        for(let i = (this.shape[0]-1); i >= 0; i--){
-            stack_x.push(this.value[i]);
-            stack_d.push(0);
-        }
+        let stack_x = [this.value];
+        let stack_d = [0];
         while(stack_x.length > 0){
             let x = stack_x.pop();
-            let d = stack_d.pop();
-
-            if(d < (this.shape.length-2)){
+            const d = stack_d.pop();
+            if(d < (this.shape.length-1)){
                 for(let i = (x.length-1); i >= 0; i--){
                     stack_x.push(x[i]);
                     stack_d.push(d+1);
@@ -75,19 +69,12 @@ class ndarray{
         let idx = 0;
 
         let z = zeros(shape);
-        let stack_x = [];
-        let stack_d = [];
-
-        for(let i = (z.shape[0]-1); i >= 0; i--){
-            stack_x.push(z[i]);
-            stack_d.push(0);
-        }
-
+        let stack_x = [z.value];
+        let stack_d = [0];
         while(stack_x.length > 0){
             let x = stack_x.pop();
-            let d = stack_d.pop();
-
-            if(d < shape.length-2){
+            const d = stack_d.pop();
+            if(d < (shape.length-1)){
                 for(let i = (x.length-1); i >= 0; i--){
                     stack_x.push(x[i]);
                     stack_d.push(d+1);
@@ -121,22 +108,15 @@ class ndarray{
         }
         let z = zeros(shape);
 
-        let stack_y = [];
-        let stack_d = [];
-        let stack_src = [];
+        let stack_y = [z.value];
+        let stack_d = [0];
+        let src = new Array(this.shape.length);
+        let stack_src = [src];
 
-        for(let i = (z.shape[0]-1); i >= 0; i--){
-            stack_y.push(z.value[i]);
-            let src = new Array(this.shape.length);
-            src[axes[0]] = i;
-            stack_src.push(src);
-            stack_d.push(1);
-        }
-        
         while(stack_y.length > 0){
             let y = stack_y.pop();
             let src = stack_src.pop();
-            let d = stack_d.pop();
+            const d = stack_d.pop();
 
             if(d < (shape.length-1)){
                 for(let i = (y.length-1); i >= 0; i--){
@@ -148,7 +128,6 @@ class ndarray{
                     stack_src.push(src1);
                 }
             }else{
-
                 for(let i = 0; i < y.length; i++){
                     src[axes[d]] = i;
                     let val = this.value;
@@ -166,18 +145,16 @@ class ndarray{
     toString(){    
         const shape = this.shape;
         // create ndarray filled with 0s.
-        let stack_y = [];
-        let stack_d = [];
-        let stack_i = [];
         let str = 'ndarray(\n';
-        stack_y.push(this.value);
-        stack_d.push(0);
+        let stack_y = [this.value];
+        let stack_d = [0];
+        let stack_i = [0];
         
         let prev_d = 0;
         while(stack_y.length > 0){
-            let y = stack_y.pop();
-            let d = stack_d.pop();
-            let i = stack_i.pop();
+            const y = stack_y.pop();
+            const d = stack_d.pop();
+            const i = stack_i.pop();
             if(d > prev_d){
                 str+= '[';
             }else if(d < prev_d){
@@ -187,8 +164,7 @@ class ndarray{
                 str += ',';
                 str += '\n';
             }
-            if(shape.length > d+1){
-  
+            if(d < (shape.length-1)){
                 for(let i = (shape[d]-1); i >= 0; i--){                    
                     stack_y.push(y[i]);
                     stack_d.push(d+1);
@@ -227,14 +203,11 @@ function array(value){
 function copy(a){
     // Deep copy of ndarray.
     const shape = a.shape;
-    let stack_x = [];
-    let stack_y = [];
-    let stack_d = [];
     let y_copy = Array(shape[0]);
-    stack_x.push(a.value);
-    stack_y.push(y_copy);
-    stack_d.push(0);
-
+    let stack_x = [a.value];
+    let stack_y = [y_copy];
+    let stack_d = [0];
+    
     while(stack_y.length > 0){
         let x = stack_x.pop();
         let y = stack_y.pop();
@@ -263,12 +236,10 @@ function copy(a){
  */
 function zeros(shape){
     // create ndarray filled with 0s.
-    let stack_y = [];
-    let stack_d = [];
     let y_zeros = Array(shape[0]);
-    stack_y.push(y_zeros);
-    stack_d.push(0);
-
+    let stack_y = [y_zeros];
+    let stack_d = [0];    
+    
     while(stack_y.length > 0){
         let y = stack_y.pop();
         let d = stack_d.pop();
@@ -295,12 +266,10 @@ function zeros(shape){
  */
 function ones(shape){
     // create ndarray filled with 1s.
-    let stack_y = [];
-    let stack_d = [];
     let y_ones = Array(shape[0]);
-    stack_y.push(y_ones);
-    stack_d.push(0);
-
+    let stack_y = [y_ones];
+    let stack_d = [0];    
+    
     while(stack_y.length > 0){
         let y = stack_y.pop();
         let d = stack_d.pop();
@@ -351,21 +320,16 @@ function add(op1, op2){
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
     // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
-    let stack_x = [];
-    let stack_y = [];
-    let stack_z = [];
-    let stack_d = [];
+    let stack_x = [op1.value];
+    let stack_y = [op2.value];
+    let stack_z = [z.value];
+    let stack_d = [0];
     
-    stack_x.push(op1.value);
-    stack_y.push(op2.value);
-    stack_z.push(z.value);
-    stack_d.push(0);
-
     while(stack_z.length > 0){            
-        let x = stack_x.pop();
-        let y = stack_y.pop();
+        const x = stack_x.pop();
+        const y = stack_y.pop();
         let z = stack_z.pop();
-        let d = stack_d.pop();
+        const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
@@ -396,21 +360,16 @@ function sub(op1, op2){
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
     // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
-    let stack_x = [];
-    let stack_y = [];
-    let stack_z = [];
-    let stack_d = [];
-    
-    stack_x.push(op1.value);
-    stack_y.push(op2.value);
-    stack_z.push(z.value);
-    stack_d.push(0);
+    let stack_x = [op1.value];
+    let stack_y = [op2.value];
+    let stack_z = [z.value];
+    let stack_d = [0];
 
     while(stack_z.length > 0){            
-        let x = stack_x.pop();
-        let y = stack_y.pop();
+        const x = stack_x.pop();
+        const y = stack_y.pop();
         let z = stack_z.pop();
-        let d = stack_d.pop();
+        const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
@@ -442,21 +401,16 @@ function mul(op1, op2){
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
     // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
-    let stack_x = [];
-    let stack_y = [];
-    let stack_z = [];
-    let stack_d = [];
+    let stack_x = [op1.value];
+    let stack_y = [op2.value];
+    let stack_z = [z.value];
+    let stack_d = [0];
     
-    stack_x.push(op1.value);
-    stack_y.push(op2.value);
-    stack_z.push(z.value);
-    stack_d.push(0);
-
     while(stack_z.length > 0){            
-        let x = stack_x.pop();
-        let y = stack_y.pop();
+        const x = stack_x.pop();
+        const y = stack_y.pop();
         let z = stack_z.pop();
-        let d = stack_d.pop();
+        const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
@@ -487,21 +441,16 @@ function div(op1, op2){
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
     // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
-    let stack_x = [];
-    let stack_y = [];
-    let stack_z = [];
-    let stack_d = [];
+    let stack_x = [op1.value];
+    let stack_y = [op2.value];
+    let stack_z = [z.value];
+    let stack_d = [0];
     
-    stack_x.push(op1.value);
-    stack_y.push(op2.value);
-    stack_z.push(z.value);
-    stack_d.push(0);
-
     while(stack_z.length > 0){            
-        let x = stack_x.pop();
-        let y = stack_y.pop();
+        const x = stack_x.pop();
+        const y = stack_y.pop();
         let z = stack_z.pop();
-        let d = stack_d.pop();
+        const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
@@ -547,21 +496,16 @@ function matmul(op1, op2){
 
     // z[d] = x[d] + y[d]
     let z = zeros(shape);
-    let stack_x = [];
-    let stack_y = [];
-    let stack_z = [];
-    let stack_d = [];
+    let stack_x = [op1.value];
+    let stack_y = [op2.value];
+    let stack_z = [z.value];
+    let stack_d = [0];
 
-    stack_x.push(op1.value);
-    stack_y.push(op2.value);
-    stack_z.push(z.value);
-    stack_d.push(0);
-    
     while(stack_z.length > 0){            
-        let x = stack_x.pop();
-        let y = stack_y.pop();
+        const x = stack_x.pop();
+        const y = stack_y.pop();
         let z = stack_z.pop();
-        let d = stack_d.pop();
+        const d = stack_d.pop();
         if(op1.shape.length > d+2){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
