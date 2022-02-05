@@ -5,23 +5,23 @@
  */
 
 class ndarray{
-    constructor(value){
-        if(Array.isArray(value)){
+    constructor(data){
+        if(Array.isArray(data)){
             this.shape = [];
-            let v = value;
+            let v = data;
             while(Array.isArray(v)){
                 this.shape.push(v.length);
                 v = v[0];
             }
 
             // to access value by ndarray[i].
-            for(let i=0; i < value.length; i++){
-                this[i] = value[i];
+            for(let i=0; i < data.length; i++){
+                this[i] = data[i];
             }
         }else{
             this.shape = [];
         }
-        this.value = value;
+        this.data = data;
 
         Object.defineProperty(this, 'T', {
             get: function() {
@@ -40,7 +40,7 @@ class ndarray{
             len *= this.shape[i];
         }
         let y_flat = [];
-        let stack_x = [this.value];
+        let stack_x = [this.data];
         let stack_d = [0];
         while(stack_x.length > 0){
             let x = stack_x.pop();
@@ -69,7 +69,7 @@ class ndarray{
         let idx = 0;
 
         let z = zeros(shape);
-        let stack_x = [z.value];
+        let stack_x = [z.data];
         let stack_d = [0];
         while(stack_x.length > 0){
             let x = stack_x.pop();
@@ -108,7 +108,7 @@ class ndarray{
         }
         let z = zeros(shape);
 
-        let stack_y = [z.value];
+        let stack_y = [z.data];
         let stack_d = [0];
         let src = new Array(this.shape.length);
         let stack_src = [src];
@@ -130,7 +130,7 @@ class ndarray{
             }else{
                 for(let i = 0; i < y.length; i++){
                     src[axes[d]] = i;
-                    let val = this.value;
+                    let val = this.data;
                     for(let j = 0; j < shape.length; j++){
                         val = val[src[j]];
                     }
@@ -146,7 +146,7 @@ class ndarray{
         const shape = this.shape;
         // create ndarray filled with 0s.
         let str = 'ndarray(\n';
-        let stack_y = [this.value];
+        let stack_y = [this.data];
         let stack_d = [0];
         let stack_i = [0];
         
@@ -194,17 +194,17 @@ class ndarray{
 
 /**
  * @brief This function returns ndarray with the given array.
- * @param value [in] the input array to be copied to member variable value. 
+ * @param a [in] the input array to be copied to member variable value. 
  */
-function array(value){
-    return new ndarray(value);
+function array(a){
+    return new ndarray(a);
 }
 
 function copy(a){
     // Deep copy of ndarray.
     const shape = a.shape;
     let y_copy = Array(shape[0]);
-    let stack_x = [a.value];
+    let stack_x = [a.data];
     let stack_y = [y_copy];
     let stack_d = [0];
     
@@ -306,9 +306,41 @@ function is_shape_equal(op1, op2){
     return same_shape;
 }
 
-function add(op1, op2){
-    // this method adds op1 and op2 and returns the result in ndarray.
-    // z = op1 + op2.
+function array_operation1(op1, operation){
+    // array operation with one operand.
+    // y = operation(op1)
+    if(op1 instanceof Array){
+        op1 = new ndarray(op1);
+    }
+
+    // z[d] = x[d] + y[d]
+    let z = zeros(op1.shape);
+    let stack_x = [op1.data];
+    let stack_z = [z.data];
+    let stack_d = [0];
+    
+    while(stack_z.length > 0){            
+        const x = stack_x.pop();
+        let z = stack_z.pop();
+        const d = stack_d.pop();
+        if(op1.shape.length > d+1){                
+            for(let i = 0; i < op1.shape[d]; i++){
+                stack_x.push(x[i]);
+                stack_z.push(z[i]);
+                stack_d.push(d+1);
+            }
+        }else{
+            for(let i = 0; i < op1.shape[d]; i++){
+                z[i] = operation(x[i]);
+            }
+        }
+    }
+    return z;
+}
+
+function array_operation2(op1, op2, operation){
+    // array operation with two operands.
+    // y = operation(op1, op2)
     if(op1 instanceof Array){
         op1 = new ndarray(op1);
     }
@@ -320,9 +352,9 @@ function add(op1, op2){
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
     // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
-    let stack_x = [op1.value];
-    let stack_y = [op2.value];
-    let stack_z = [z.value];
+    let stack_x = [op1.data];
+    let stack_y = [op2.data];
+    let stack_z = [z.data];
     let stack_d = [0];
     
     while(stack_z.length > 0){            
@@ -339,134 +371,65 @@ function add(op1, op2){
             }
         }else{
             for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = x[i] + y[i];     // Add.
+                z[i] = operation(x[i], y[i]);     // Add.
             }
         }
     }
     return z;
+}
+
+
+function add(op1, op2){
+    // this method adds op1 and op2 and returns the result in ndarray.
+    // z = op1 + op2.
+    return array_operation2(op1, op2, function (x, y) {return x + y;});
 }
 
 function sub(op1, op2){
     // this method subtracts op2 from op1 and returns the result in ndarray.
     // z = op1 - op2.
-    if(op1 instanceof Array){
-        op1 = new ndarray(op1);
-    }
-
-    if(op2 instanceof Array){
-        op2 = new ndarray(op2);
-    }
-
-    console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
-    // z[d] = x[d] + y[d]
-    let z = zeros(op1.shape);
-    let stack_x = [op1.value];
-    let stack_y = [op2.value];
-    let stack_z = [z.value];
-    let stack_d = [0];
-
-    while(stack_z.length > 0){            
-        const x = stack_x.pop();
-        const y = stack_y.pop();
-        let z = stack_z.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_z.push(z[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = x[i] - y[i];     // Subtract.
-            }
-        }
-    }
-    return z;
+    return array_operation2(op1, op2, function (x, y) {return x - y;});
 }
-
 
 function mul(op1, op2){
     // this method performs element wise multiplication of op1 and op2 and returns the result in ndarray.
     // z = op1 * op2.
-    if(op1 instanceof Array){
-        op1 = new ndarray(op1);
-    }
-
-    if(op2 instanceof Array){
-        op2 = new ndarray(op2);
-    }
-
-    console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
-    // z[d] = x[d] + y[d]
-    let z = zeros(op1.shape);
-    let stack_x = [op1.value];
-    let stack_y = [op2.value];
-    let stack_z = [z.value];
-    let stack_d = [0];
-    
-    while(stack_z.length > 0){            
-        const x = stack_x.pop();
-        const y = stack_y.pop();
-        let z = stack_z.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_z.push(z[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = x[i] * y[i];     // Element wise multiplication.
-            }
-        }
-    }
-    return z;
+    return array_operation2(op1, op2, function (x, y) {return x * y;});
 }
 
 function div(op1, op2){
     // this method performs element wise division of op1 and op2 and returns the result in ndarray.
     // z = op1 / op2.
-    if(op1 instanceof Array){
-        op1 = new ndarray(op1);
-    }
-
-    if(op2 instanceof Array){
-        op2 = new ndarray(op2);
-    }
-
-    console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
-    // z[d] = x[d] + y[d]
-    let z = zeros(op1.shape);
-    let stack_x = [op1.value];
-    let stack_y = [op2.value];
-    let stack_z = [z.value];
-    let stack_d = [0];
-    
-    while(stack_z.length > 0){            
-        const x = stack_x.pop();
-        const y = stack_y.pop();
-        let z = stack_z.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_z.push(z[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = x[i] / y[i];     // Element wise multiplication.
-            }
-        }
-    }
-    return z;
+    return array_operation2(op1, op2, function (x, y) {return x / y;});
 }
 
+function sin(x){
+    return array_operation1(x, function (x) { return Math.sin(x);});
+}
+
+function cos(x){
+    return array_operation1(x, function (x) { return Math.cos(x);});
+}
+
+function tan(x){
+    return array_operation1(x, function (x) { return Math.tan(x);});
+}
+
+function arcsin(x){
+    return array_operation1(x, function (x) { return Math.asin(x);});
+}
+
+function arccos(x){
+    return array_operation1(x, function (x) { return Math.acos(x);});
+}
+
+function arctan(x){
+    return array_operation1(x, function (x) { return Math.atan(x);});
+}
+
+function arctan2(x1, x2){
+    return array_operation2(x1, x2, function (x, y) { return Math.atan2(x, y);});
+}
 
 function matmul(op1, op2){
     // this method performs matrix multiplication of op1 and op2 and returns the result in ndarray.
@@ -496,9 +459,9 @@ function matmul(op1, op2){
 
     // z[d] = x[d] + y[d]
     let z = zeros(shape);
-    let stack_x = [op1.value];
-    let stack_y = [op2.value];
-    let stack_z = [z.value];
+    let stack_x = [op1.data];
+    let stack_y = [op2.data];
+    let stack_z = [z.data];
     let stack_d = [0];
 
     while(stack_z.length > 0){            
@@ -541,7 +504,7 @@ function eye(N, M=null){
 
     let z = zeros(shape);
     for(let i = 0; i < N; i++){
-        z.value[i][i] = 1;
+        z.data[i][i] = 1;
     }
     return z;
 }
@@ -600,7 +563,7 @@ function assertArrayEqual(x, y){
 
     // test for value.
     index = [];
-    if(false == test_array_equal(x.value, y.value, index, 0.0)){
+    if(false == test_array_equal(x.data, y.data, index, 0.0)){
         throw 'The two arrays are not equal.';
     }
 }
@@ -630,7 +593,7 @@ function assertArrayNear(x, y, eps){
 
     // test for value.
     index = [];
-    if(false == test_array_equal(x.value, y.value, index, eps)){
+    if(false == test_array_equal(x.data, y.data, index, eps)){
         throw 'The two arrays are not equal.';
     }
 }
@@ -643,9 +606,54 @@ function transpose(a, axes=null){
     return a.transpose(axes);
 }
 
+class matrix extends ndarray
+{
+    constructor(a, dtype=null, copy=true){
+        // check array dimension.
+        let dim = 0
+        let shape = [];
+        let t = a;
+        while(Array.isArray(t)){
+            dim ++;
+            shape.push(t.length);
+            t = t[0]; 
+        }
+        console.assert(dim==2, 'Matrix has to be 2-dimensional array');
+
+        if(true == copy){
+            let y_copy = Array(shape[0]);
+            let stack_x = [a];
+            let stack_y = [y_copy];
+            let stack_d = [0];
+            
+            while(stack_y.length > 0){
+                let x = stack_x.pop();
+                let y = stack_y.pop();
+                let d = stack_d.pop();
+                if(shape.length > d+1){                
+                    for(let i = 0; i < shape[d]; i++){
+                        y[i] = new Array(shape[d+1]);
+                        stack_x.push(x[i]);
+                        stack_y.push(y[i]);
+                        stack_d.push(d+1);
+                    }
+                }else{
+                    for(let i = 0; i < shape[d]; i++){
+                        y[i] = x[i];   // copy value.
+                    }
+                }
+            }
+            super(y_copy);
+        }else{
+            super(a);
+        }        
+    }
+};
+
+
 var linalg = require('./linalg.js');
-module.exports = {array, zeros, ones, copy, eye,
-    add, sub, mul, div, matmul,
+module.exports = {array, zeros, ones, copy, eye, matrix,
+    add, sub, mul, div, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
     reshape, transpose, 
     linalg,
     assertArrayEqual, assertArrayNear};

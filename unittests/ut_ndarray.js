@@ -50,9 +50,11 @@ class ut_numjs extends ut.htest
     test_reshape(){
         const a = [[[1], [2]], [[3], [4]], [[5], [6]]];
         const b = nj.array(a);
-        let c = b.reshape([2, 3]);
+        let c1 = b.reshape([2, 3]);
+        let c2 = nj.reshape(b, [2, 3]);
 
-        nj.assertArrayEqual(c, [[1, 2, 3], [4, 5, 6]]);
+        nj.assertArrayEqual(c1, [[1, 2, 3], [4, 5, 6]]);
+        nj.assertArrayEqual(c2, [[1, 2, 3], [4, 5, 6]]);
     }
 
     test_add(){
@@ -115,7 +117,7 @@ class ut_numjs extends ut.htest
                                  [[3,  9], [4, 10]], 
                                  [[5, 11], [6, 12]]]);
 
-        let b4 = a3.transpose([0, 2, 1]);
+        let b4 = nj.transpose(a3, [0, 2, 1]);
         nj.assertArrayEqual(b4, [[[1,  3,  5],
                                   [2,  4,  6]],
                                  [[7,  9, 11],
@@ -184,6 +186,17 @@ class ut_numjs extends ut.htest
         const x = nj.linalg.solve(nj.matmul(a.T, a), nj.matmul(a.T, b));
 
         nj.assertArrayNear(x, [[c0], [c1], [c2]], 1e-6);
+    }
+
+    test_matrix(){
+        let a = new nj.matrix([[0, 1], [2, 3]]);
+        nj.assertArrayEqual(a, [[0, 1], [2, 3]]);
+    }
+
+    test_sin(){
+        let a = nj.array([0, 0.1, 0.2, 0.3]);
+        let y = nj.sin(a);
+        console.log('' + y);
     }
 };
 
