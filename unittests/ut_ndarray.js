@@ -207,6 +207,50 @@ class ut_numjs extends ut.htest
             this.expectEqual(y[i], Math.sin(x[i]));
         }
     }
+
+    test_max(){
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]]]);
+
+        let b1 = a.max();
+        nj.assertArrayEqual(b1, [[[2], [5]]]);
+
+        let b2 = a.max(1);
+        nj.assertArrayEqual(b2, [[[0, 4, 5]]]);
+
+        let b3 = a.max(0);
+        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
+                                  [-3, 4, 5]]]);
+    }
+
+    test_min(){
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]]]);
+
+        let b1 = a.min();
+        nj.assertArrayEqual(b1, [[[0], [-3]]]);
+
+        let b2 = a.min(1);
+        nj.assertArrayEqual(b2, [[[-3, 1, 2]]]);
+
+        let b3 = a.min(0);
+        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
+                                  [-3, 4, 5]]]);
+    }
+
+    test_mean(){
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]]]);
+        let b1 = a.mean();
+        nj.assertArrayEqual(b1, [[[1], [2]]]);
+
+        let b2 = a.mean(1);
+        nj.assertArrayEqual(b2, [[[-1.5, 2.5, 3.5]]]);
+
+        let b3 = a.mean(0);
+        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
+                                  [-3, 4, 5]]]);
+    }
 };
 
 let test = new ut_numjs();

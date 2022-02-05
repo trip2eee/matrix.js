@@ -19,7 +19,7 @@ class ndarray{
                 this[i] = data[i];
             }
         }else{
-            this.shape = [];
+            console.error('input data has to be an array.');
         }
         this.data = data;
 
@@ -142,7 +142,30 @@ class ndarray{
         return z;
     }
 
-    toString(){    
+    max(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        return array_operation_axis(this, -Number.MAX_SAFE_INTEGER, axis, function (x, y){ return (x > y) ? x : y;});
+    }
+
+    min(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        return array_operation_axis(this, Number.MAX_SAFE_INTEGER, axis, function (x, y){ return (x < y) ? x : y;});
+    }
+
+    mean(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        let z = array_operation_axis(this, 0, axis, function (x, y){ return (x + y);});
+        const denom = this.shape[axis];
+        return array_operation1(z, function(x){ return x / denom;});
+    }
+
+    toString(){
         const shape = this.shape;
         // create ndarray filled with 0s.
         let str = 'ndarray(\n';
@@ -182,11 +205,11 @@ class ndarray{
             }
             prev_d = d;
         }
-        while(prev_d > 1){
+        while(prev_d > 0){
             prev_d--;
             str += ']';
         }
-        str += ']\n)';
+        str += '\n)';
 
         return str;
     }
@@ -313,26 +336,32 @@ function array_operation1(op1, operation){
         op1 = new ndarray(op1);
     }
 
-    // z[d] = x[d] + y[d]
     let z = zeros(op1.shape);
     let stack_x = [op1.data];
-    let stack_z = [z.data];
+    let stack_y = [z.data];
     let stack_d = [0];
     
-    while(stack_z.length > 0){            
+    while(stack_y.length > 0){            
         const x = stack_x.pop();
-        let z = stack_z.pop();
+        let y = stack_y.pop();
         const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
                 stack_x.push(x[i]);
-                stack_z.push(z[i]);
+                stack_y.push(y[i]);
                 stack_d.push(d+1);
             }
         }else{
             for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = operation(x[i]);
+                y[i] = operation(x[i]);
             }
+        }
+    }
+
+    // if 1-D array
+    if(z.shape.length == 1){
+        for(let i = 0; i < z.data.length; i++){
+            z[i] = z.data[i];
         }
     }
     return z;
@@ -371,13 +400,80 @@ function array_operation2(op1, op2, operation){
             }
         }else{
             for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = operation(x[i], y[i]);     // Add.
+                z[i] = operation(x[i], y[i]);   // element wise operation.
             }
+        }
+    }
+    
+    // if 1-D array
+    if(z.shape.length == 1){
+        for(let i = 0; i < z.data.length; i++){
+            z[i] = z.data[i];
         }
     }
     return z;
 }
 
+/**
+ * @brief This function performs a numerical operation along an axis.
+ * @param op1 [in] The array in which a numerical operation is performed.
+ * @param init_val [in] Initial value to initialize the result array before the numerical operation is performed.
+ * @param axis [in] The axis along which the numerical operation is performed.
+ * @param operation [in] The numerical operation to be performed.
+ * @returns The numerical operation result.
+ */
+function array_operation_axis(op1, init_val, axis, operation){
+    // array operation along an axis.
+    // y = operation(op1, op2)
+    if(op1 instanceof Array){
+        op1 = new ndarray(op1);
+    }
+
+    new_shape = op1.shape.slice();
+    new_shape[axis] = 1;
+
+    let z = zeros(new_shape);
+    z = array_operation1(z, function(x) { return init_val});
+
+    let stack_x = [op1.data];
+    let stack_y = [z.data];
+    let stack_d = [0];
+    
+    while(stack_y.length > 0){            
+        const x = stack_x.pop();
+        const y = stack_y.pop();
+        const d = stack_d.pop();
+        if(op1.shape.length > d+1){                
+            for(let i = 0; i < op1.shape[d]; i++){
+                stack_x.push(x[i]);
+                if(d == axis){
+                    stack_y.push(y[0]);
+                }else{
+                    stack_y.push(y[i]);
+                }
+                stack_d.push(d+1);
+            }
+        }else{
+            if(d == axis){
+                for(let i = 0; i < x.length; i++){
+                    y[0] = operation(x[i], y[0]);   // axis wise operation.
+                }
+            }else{
+                for(let i = 0; i < x.length; i++){
+                    y[i] = operation(x[i], y[i]);   // axis wise operation.
+                }
+            }            
+        }
+    }
+    
+    // if 1-D array
+    if(z.shape.length == 1){
+        for(let i = 0; i < z.data.length; i++){
+            z[i] = z.data[i];
+        }
+    }
+    return z;
+}
 
 function add(op1, op2){
     // this method adds op1 and op2 and returns the result in ndarray.
@@ -606,50 +702,46 @@ function transpose(a, axes=null){
     return a.transpose(axes);
 }
 
-class matrix extends ndarray
-{
-    constructor(a, dtype=null, copy=true){
-        // check array dimension.
-        let dim = 0
-        let shape = [];
-        let t = a;
-        while(Array.isArray(t)){
-            dim ++;
-            shape.push(t.length);
-            t = t[0]; 
-        }
-        console.assert(dim==2, 'Matrix has to be 2-dimensional array');
+function matrix(a, dtype=null, copy=true) {
+    // check array dimension.
+    let dim = 0
+    let shape = [];
+    let t = a;
+    while(Array.isArray(t)){
+        dim ++;
+        shape.push(t.length);
+        t = t[0]; 
+    }
+    console.assert(dim==2, 'Matrix has to be 2-dimensional array');
 
-        if(true == copy){
-            let y_copy = Array(shape[0]);
-            let stack_x = [a];
-            let stack_y = [y_copy];
-            let stack_d = [0];
-            
-            while(stack_y.length > 0){
-                let x = stack_x.pop();
-                let y = stack_y.pop();
-                let d = stack_d.pop();
-                if(shape.length > d+1){                
-                    for(let i = 0; i < shape[d]; i++){
-                        y[i] = new Array(shape[d+1]);
-                        stack_x.push(x[i]);
-                        stack_y.push(y[i]);
-                        stack_d.push(d+1);
-                    }
-                }else{
-                    for(let i = 0; i < shape[d]; i++){
-                        y[i] = x[i];   // copy value.
-                    }
+    if(true == copy){
+        let y_copy = Array(shape[0]);
+        let stack_x = [a];
+        let stack_y = [y_copy];
+        let stack_d = [0];
+        
+        while(stack_y.length > 0){
+            let x = stack_x.pop();
+            let y = stack_y.pop();
+            let d = stack_d.pop();
+            if(shape.length > d+1){                
+                for(let i = 0; i < shape[d]; i++){
+                    y[i] = new Array(shape[d+1]);
+                    stack_x.push(x[i]);
+                    stack_y.push(y[i]);
+                    stack_d.push(d+1);
+                }
+            }else{
+                for(let i = 0; i < shape[d]; i++){
+                    y[i] = x[i];   // copy value.
                 }
             }
-            super(y_copy);
-        }else{
-            super(a);
-        }        
-    }
-};
-
+        }
+        return new ndarray(y_copy);
+    }else{
+        return new ndarray(a);
+    }        
+}
 
 var linalg = require('./linalg.js');
 module.exports = {array, zeros, ones, copy, eye, matrix,

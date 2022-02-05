@@ -8,25 +8,34 @@ This library mimics the interfaces of [NumPy](https://numpy.org/) for easy use.
 ### ndarray
 
 The following methods are implemented in multidimensional array. The operations are the same as numpy methods with the same names.
-- flatten()
-- reshape()
-- transpose()
+- flatten
+- reshape
+- transpose
+- min
+- max
+- mean
 
 The following functions are implemented. Their functions do the same operations as numpy functions.
-- array()
-- zeros()
-- ones()
-- copy()
-- eye()
-- add() - element wise addition.
-- sub() - element wise subtraction.
-- mul() - element wise multiplication.
-- div() - element wise division.
-- matmul() - matrix multiplcation.
-- reshape()
-- transpose()
-- linalg.inv()
-- linalg.solve()
+- array
+- zeros
+- ones
+- copy
+- eye
+- add - element wise addition.
+- sub - element wise subtraction.
+- mul - element wise multiplication.
+- div - element wise division.
+- matmul - matrix multiplcation.
+- sin
+- cos
+- tan
+- arcsin
+- arccos
+- arctan
+- reshape
+- transpose
+- linalg.inv
+- linalg.solve
 
 
 
