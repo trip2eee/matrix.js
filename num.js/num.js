@@ -8,12 +8,21 @@ class ndarray{
     constructor(data){
         if(Array.isArray(data)){
             this.shape = [];
+            this.strides = [];
+
             let v = data;
             while(Array.isArray(v)){
                 this.shape.push(v.length);
+                this.strides.push(1);
                 v = v[0];
             }
-
+            
+            // compute stride.
+            for(let i = 0; i < this.shape.length; i++){
+                for(let j = i+1; j < this.shape.length; j++){
+                    this.strides[i] *= this.shape[j];
+                }                
+            }
             // to access value by ndarray[i].
             for(let i=0; i < data.length; i++){
                 this[i] = data[i];
@@ -163,6 +172,13 @@ class ndarray{
         let z = array_operation_axis(this, 0, axis, function (x, y){ return (x + y);});
         const denom = this.shape[axis];
         return array_operation1(z, function(x){ return x / denom;});
+    }
+
+    argmax(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        return array_operation_axis_arg(this, axis, function (x, y, ix, iy){ return (x > y) ? ix : iy;});
     }
 
     toString(){
@@ -336,34 +352,21 @@ function array_operation1(op1, operation){
         op1 = new ndarray(op1);
     }
 
-    let z = zeros(op1.shape);
-    let stack_x = [op1.data];
-    let stack_y = [z.data];
-    let stack_d = [0];
-    
-    while(stack_y.length > 0){            
-        const x = stack_x.pop();
-        let y = stack_y.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                y[i] = operation(x[i]);
-            }
-        }
+    let x = op1.flatten();
+    let z = zeros(x.shape);
+
+    for(let i = 0; i < x.shape[0]; i++){
+        z.data[i] = operation(x[i]);
     }
 
+    z = z.reshape(op1.shape);
     // if 1-D array
     if(z.shape.length == 1){
         for(let i = 0; i < z.data.length; i++){
             z[i] = z.data[i];
         }
     }
+
     return z;
 }
 
@@ -377,40 +380,24 @@ function array_operation2(op1, op2, operation){
     if(op2 instanceof Array){
         op2 = new ndarray(op2);
     }
-
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
-    // z[d] = x[d] + y[d]
-    let z = zeros(op1.shape);
-    let stack_x = [op1.data];
-    let stack_y = [op2.data];
-    let stack_z = [z.data];
-    let stack_d = [0];
-    
-    while(stack_z.length > 0){            
-        const x = stack_x.pop();
-        const y = stack_y.pop();
-        let z = stack_z.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_z.push(z[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                z[i] = operation(x[i], y[i]);   // element wise operation.
-            }
-        }
+
+    let x = op1.flatten();
+    let y = op2.flatten();
+    let z = zeros(x.shape);
+
+    for(let i = 0; i < x.shape[0]; i++){
+        z.data[i] = operation(x[i], y[i]);
     }
-    
+
+    z = z.reshape(op1.shape);
     // if 1-D array
     if(z.shape.length == 1){
         for(let i = 0; i < z.data.length; i++){
             z[i] = z.data[i];
         }
     }
+
     return z;
 }
 
@@ -441,7 +428,7 @@ function array_operation_axis(op1, init_val, axis, operation){
     
     while(stack_y.length > 0){            
         const x = stack_x.pop();
-        const y = stack_y.pop();
+        let y = stack_y.pop();
         const d = stack_d.pop();
         if(op1.shape.length > d+1){                
             for(let i = 0; i < op1.shape[d]; i++){
@@ -474,6 +461,64 @@ function array_operation_axis(op1, init_val, axis, operation){
     }
     return z;
 }
+
+function array_operation_axis_arg(op1, axis, operation){
+    // array operation along an axis.
+    // y = operation(op1, op2)
+    if(op1 instanceof Array){
+        op1 = new ndarray(op1);
+    }
+
+    new_shape = op1.shape.slice();
+    new_shape[axis] = 1;
+
+    let z = zeros(new_shape);
+
+    let stack_x = [op1.data];
+    let stack_y = [z.data];
+    let stack_d = [0];
+    let stack_idx = [0];
+    
+    while(stack_y.length > 0){            
+        const x = stack_x.pop();
+        let y = stack_y.pop();
+        const d = stack_d.pop();
+        const idx = stack_idx.pop();
+        if(op1.shape.length > d+1){                
+            for(let i = 0; i < op1.shape[d]; i++){
+                stack_x.push(x[i]);
+                if(d == axis){
+                    stack_y.push(y[0]);                    
+                }else{
+                    stack_y.push(y[i]);
+                }
+                stack_idx.push(i);
+                stack_d.push(d+1);
+            }
+        }else{
+            if(d == axis){
+                for(let i = 0; i < x.length; i++){
+                    // y: index.
+                    y[0] = operation(x[i], x[y[0]], i, y[0]);   // axis wise operation.
+                }
+            }else{
+                for(let i = 0; i < x.length; i++){
+                    // y: index.
+                    y[i] = operation(x[i], x[y[i]], idx, y[i]);   // axis wise operation.
+                }
+            }
+        }
+    }
+    
+    // if 1-D array
+    if(z.shape.length == 1){
+        for(let i = 0; i < z.data.length; i++){
+            z[i] = z.data[i];
+        }
+    }
+    return z;
+}
+
 
 function add(op1, op2){
     // this method adds op1 and op2 and returns the result in ndarray.
