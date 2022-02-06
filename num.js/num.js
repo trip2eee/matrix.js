@@ -95,6 +95,13 @@ class ndarray{
                 }
             }
         }
+
+        // if 1-D array
+        if(z.shape.length == 1){
+            for(let i = 0; i < z.data.length; i++){
+                z[i] = z.data[i];
+            }
+        }
         return z;
     }
 
@@ -155,21 +162,21 @@ class ndarray{
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis(this, -Number.MAX_SAFE_INTEGER, axis, function (x, y){ return (x > y) ? x : y;});
+        return array_operation_axis(this, axis, function (x, y){ return (x > y) ? x : y;});
     }
 
     min(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis(this, Number.MAX_SAFE_INTEGER, axis, function (x, y){ return (x < y) ? x : y;});
+        return array_operation_axis(this, axis, function (x, y){ return (x < y) ? x : y;});
     }
 
     mean(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        let z = array_operation_axis(this, 0, axis, function (x, y){ return (x + y);});
+        let z = array_operation_axis(this, axis, function (x, y){ return (x + y);});
         const denom = this.shape[axis];
         return array_operation1(z, function(x){ return x / denom;});
     }
@@ -178,7 +185,14 @@ class ndarray{
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis_arg(this, axis, function (x, y, ix, iy){ return (x > y) ? ix : iy;});
+        return array_operation_axis_arg(this, axis, function (x, y){ return (x < y);});
+    }
+
+    argmin(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        return array_operation_axis_arg(this, axis, function (x, y){ return (x > y);});
     }
 
     toString(){
@@ -404,62 +418,48 @@ function array_operation2(op1, op2, operation){
 /**
  * @brief This function performs a numerical operation along an axis.
  * @param op1 [in] The array in which a numerical operation is performed.
- * @param init_val [in] Initial value to initialize the result array before the numerical operation is performed.
  * @param axis [in] The axis along which the numerical operation is performed.
  * @param operation [in] The numerical operation to be performed.
  * @returns The numerical operation result.
  */
-function array_operation_axis(op1, init_val, axis, operation){
+function array_operation_axis(op1, axis, operation){
     // array operation along an axis.
     // y = operation(op1, op2)
     if(op1 instanceof Array){
         op1 = new ndarray(op1);
     }
 
-    new_shape = op1.shape.slice();
-    new_shape[axis] = 1;
-
-    let z = zeros(new_shape);
-    z = array_operation1(z, function(x) { return init_val});
-
-    let stack_x = [op1.data];
-    let stack_y = [z.data];
-    let stack_d = [0];
+    let new_shape = [];
+    let len_y = 1;
+    for(let i = 0; i < op1.shape.length; i++){
+        if(i != axis){
+            new_shape.push(op1.shape[i]);
+            len_y *= op1.shape[i];    
+        }
+    }
     
-    while(stack_y.length > 0){            
-        const x = stack_x.pop();
-        let y = stack_y.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                if(d == axis){
-                    stack_y.push(y[0]);
-                }else{
-                    stack_y.push(y[i]);
-                }
-                stack_d.push(d+1);
-            }
+    let flat_x = op1.flatten();
+    let flat_y = new ndarray(Array(len_y));
+    let idx_offset = 0;
+    for(let i = 0; i < flat_x.shape[0]; i++){
+
+        flat_y.data[i] = flat_x.data[idx_offset];
+        for(let j = 1; j < op1.shape[axis]; j++){
+            flat_y.data[i] = operation(flat_x.data[idx_offset + (j * op1.strides[axis])], flat_y.data[i]);
+        }
+        
+        if(axis == (op1.shape.length-1)){
+            idx_offset += op1.shape[axis];
         }else{
-            if(d == axis){
-                for(let i = 0; i < x.length; i++){
-                    y[0] = operation(x[i], y[0]);   // axis wise operation.
-                }
-            }else{
-                for(let i = 0; i < x.length; i++){
-                    y[i] = operation(x[i], y[i]);   // axis wise operation.
-                }
-            }            
+            idx_offset += 1;
+            if((idx_offset % op1.strides[axis]) == 0){
+                idx_offset += op1.strides[axis];
+            }
         }
     }
-    
-    // if 1-D array
-    if(z.shape.length == 1){
-        for(let i = 0; i < z.data.length; i++){
-            z[i] = z.data[i];
-        }
-    }
-    return z;
+
+    let y = flat_y.reshape(new_shape);    
+    return y
 }
 
 function array_operation_axis_arg(op1, axis, operation){
@@ -469,54 +469,46 @@ function array_operation_axis_arg(op1, axis, operation){
         op1 = new ndarray(op1);
     }
 
-    new_shape = op1.shape.slice();
-    new_shape[axis] = 1;
-
-    let z = zeros(new_shape);
-
-    let stack_x = [op1.data];
-    let stack_y = [z.data];
-    let stack_d = [0];
-    let stack_idx = [0];
+    let new_shape = [];
+    let len_y = 1;
+    for(let i = 0; i < op1.shape.length; i++){
+        if(i != axis){
+            new_shape.push(op1.shape[i]);
+            len_y *= op1.shape[i];    
+        }
+    }
     
-    while(stack_y.length > 0){            
-        const x = stack_x.pop();
-        let y = stack_y.pop();
-        const d = stack_d.pop();
-        const idx = stack_idx.pop();
-        if(op1.shape.length > d+1){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                if(d == axis){
-                    stack_y.push(y[0]);                    
-                }else{
-                    stack_y.push(y[i]);
-                }
-                stack_idx.push(i);
-                stack_d.push(d+1);
+    let flat_x = op1.flatten();
+    let flat_y = new ndarray(Array(len_y));
+    let flat_arg = new ndarray(Array(len_y));
+    for(let i = 0; i < flat_y.shape[0]; i++){
+        flat_arg.data[i] = 0;
+    }
+
+    let idx_offset = 0;
+    for(let i = 0; i < flat_x.shape[0]; i++){
+        flat_y.data[i] = flat_x.data[idx_offset];
+
+        for(let j = 1; j < op1.shape[axis]; j++){
+            if(operation(flat_y.data[i], flat_x.data[idx_offset + (j * op1.strides[axis])])){
+                flat_y.data[i] = flat_x.data[idx_offset + (j * op1.strides[axis])];
+                flat_arg.data[i] = j;
             }
+            
+        }
+        
+        if(axis == (op1.shape.length-1)){
+            idx_offset += op1.shape[axis];
         }else{
-            if(d == axis){
-                for(let i = 0; i < x.length; i++){
-                    // y: index.
-                    y[0] = operation(x[i], x[y[0]], i, y[0]);   // axis wise operation.
-                }
-            }else{
-                for(let i = 0; i < x.length; i++){
-                    // y: index.
-                    y[i] = operation(x[i], x[y[i]], idx, y[i]);   // axis wise operation.
-                }
+            idx_offset += 1;
+            if((idx_offset % op1.strides[axis]) == 0){
+                idx_offset += op1.strides[axis];
             }
         }
     }
-    
-    // if 1-D array
-    if(z.shape.length == 1){
-        for(let i = 0; i < z.data.length; i++){
-            z[i] = z.data[i];
-        }
-    }
-    return z;
+
+    let arg = flat_arg.reshape(new_shape);    
+    return arg
 }
 
 
@@ -666,6 +658,18 @@ function test_array_equal(x, y, index, eps){
             equal = false;  // not equal.
             // print error message.
             let msg = x + ' != ' + y + ' at (';
+            for(let i = 0; i < index.length; i++){
+                if(i > 0){
+                    msg += ', ';
+                }
+                msg += index[i];
+            }
+            msg += ')';
+            console.log(msg)
+        }else if(x === undefined){
+            equal = false;  // not equal.
+            // print error message.
+            let msg = x + ' is undefined at (';
             for(let i = 0; i < index.length; i++){
                 if(i > 0){
                     msg += ', ';

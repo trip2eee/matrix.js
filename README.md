@@ -34,6 +34,11 @@ The following functions are implemented. Their functions do the same operations 
 - arctan
 - reshape
 - transpose
+- min
+- max
+- mean
+- argmin
+- argmax
 - linalg.inv
 - linalg.solve
 

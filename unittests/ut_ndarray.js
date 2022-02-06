@@ -51,10 +51,10 @@ class ut_numjs extends ut.htest
         const a = [[[1], [2]], [[3], [4]], [[5], [6]]];
         const b = nj.array(a);
         let c1 = b.reshape([2, 3]);
-        let c2 = nj.reshape(b, [2, 3]);
+        let c2 = nj.reshape(b, [6]);
 
         nj.assertArrayEqual(c1, [[1, 2, 3], [4, 5, 6]]);
-        nj.assertArrayEqual(c2, [[1, 2, 3], [4, 5, 6]]);
+        nj.assertArrayEqual(c2, [1, 2, 3, 4, 5, 6]);
     }
 
     test_add(){
@@ -209,47 +209,121 @@ class ut_numjs extends ut.htest
     }
 
     test_max(){
-        let a = nj.array([[[ 0, 1, 2], 
-                           [-3, 4, 5]]]);
+        let a = nj.array([[[ 0, 1, 2, 3], 
+                           [-3, 4, 5, 6]],                
+                          [[ 10, 11, 12, 13], 
+                           [-13, 14, 15, 16]]]);
 
         let b1 = a.max();
-        nj.assertArrayEqual(b1, [[[2], [5]]]);
+        nj.assertArrayEqual(b1, [[3, 6], [13, 16]]);
 
         let b2 = a.max(1);
-        nj.assertArrayEqual(b2, [[[0, 4, 5]]]);
+        nj.assertArrayEqual(b2, [[0, 4, 5, 6], [10, 14, 15, 16]]);
 
         let b3 = a.max(0);
-        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
-                                  [-3, 4, 5]]]);
+        nj.assertArrayEqual(b3, [[ 10, 11, 12, 13], 
+                                 [ -3, 14, 15, 16]]);
+    }
+
+    test_argmax(){
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]],                
+                          [[ 10, 11, 12], 
+                           [-13, 14, 15]]]);
+
+        let b1 = a.argmax();
+        nj.assertArrayEqual(b1, [[2, 2], [2, 2]]);
+        
+        let b2 = a.argmax(1);
+        nj.assertArrayEqual(b2, [[0, 1, 1], [0, 1, 1]]);
+
+        let b3 = a.argmax(0);
+        nj.assertArrayEqual(b3, [[1, 1, 1], 
+                                 [0, 1, 1]]);
     }
 
     test_min(){
-        let a = nj.array([[[ 0, 1, 2], 
-                           [-3, 4, 5]]]);
+        let a = nj.array([[[[0, 1],
+                            [2, 3]], 
+                           [[-3, 4],
+                            [5, 6]]],
+                          [[[ 10, 11],
+                            [12, 13]], 
+                           [[-13, 14],
+                            [15, 14]]]]);
 
-        let b1 = a.min();
-        nj.assertArrayEqual(b1, [[[0], [-3]]]);
+        let b1 = a.min(3);
+        nj.assertArrayEqual(b1, [[[  0, 2],
+                                  [ -3, 5]],
+                                 [[ 10, 12],
+                                  [-13, 14]]]);
 
-        let b2 = a.min(1);
-        nj.assertArrayEqual(b2, [[[-3, 1, 2]]]);
+        let b2 = a.min(2);
+        nj.assertArrayEqual(b2, [[[  0, 1],
+                                  [ -3, 4]],
+                                 [[ 10, 11],
+                                  [-13, 14]]]);
+                                    
+        let b3 = a.min(1);
+        nj.assertArrayEqual(b3, [[[ -3, 1],
+                                  [  2, 3]],
+                                 [[-13, 11],
+                                  [ 12, 13]]]);
 
-        let b3 = a.min(0);
-        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
-                                  [-3, 4, 5]]]);
+        let b4 = a.min(0);
+        nj.assertArrayEqual(b4, [[[  0, 1],
+                                  [  2, 3]],
+                                 [[-13, 4],
+                                  [  5, 6]]]);
+    }
+
+    test_argmin(){
+        let a = nj.array([[[[0, 1],
+                            [2, 3]], 
+                           [[-3, 4],
+                            [5, 6]]],
+                          [[[ 10, 11],
+                            [12, 13]], 
+                           [[-13, 14],
+                            [15, 14]]]]);
+
+        let b1 = a.argmin();
+        nj.assertArrayEqual(b1, [[[0, 0],
+                                  [0, 0]],
+                                 [[0, 0],
+                                  [0, 1]]]);
+        
+        let b2 = a.argmin(2);
+        nj.assertArrayEqual(b2, [[[0, 0],
+                                  [0, 0]],
+                                 [[0, 0],
+                                  [0, 0]]]);
+
+        let b3 = a.argmin(1);
+        nj.assertArrayEqual(b3, [[[1, 0],
+                                  [0, 0]],
+                                 [[1, 0],
+                                  [0, 0]]]);
+        
+        let b4 = a.argmin(0);
+        nj.assertArrayEqual(b4, [[[0, 0],
+                                  [0, 0]],
+                                 [[1, 0],
+                                  [0, 0]]]);
     }
 
     test_mean(){
         let a = nj.array([[[ 0, 1, 2], 
                            [-3, 4, 5]]]);
         let b1 = a.mean();
-        nj.assertArrayEqual(b1, [[[1], [2]]]);
+        nj.assertArrayEqual(b1, [[1, 2]]);
 
         let b2 = a.mean(1);
-        nj.assertArrayEqual(b2, [[[-1.5, 2.5, 3.5]]]);
+        nj.assertArrayEqual(b2, [[-1.5, 2.5, 3.5]]);
 
         let b3 = a.mean(0);
-        nj.assertArrayEqual(b3, [[[ 0, 1, 2], 
-                                  [-3, 4, 5]]]);
+        nj.assertArrayEqual(b3, [[ 0, 1, 2], 
+                                 [-3, 4, 5]]);
     }
 };
 
