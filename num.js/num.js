@@ -4,6 +4,10 @@
  * @Author Jongmin Park
  */
 
+// Constants
+const pi = 3.141592653589793;
+
+// Implmentations
 class ndarray{
     constructor(data){
         if(Array.isArray(data)){
@@ -657,7 +661,7 @@ function test_array_equal(x, y, index, eps){
         if(Math.abs(x - y) > eps){
             equal = false;  // not equal.
             // print error message.
-            let msg = x + ' != ' + y + ' at (';
+            let msg = x + ' != ' + y + ' by ' + Math.abs(x-y) + ' at (';
             for(let i = 0; i < index.length; i++){
                 if(i > 0){
                     msg += ', ';
@@ -666,10 +670,10 @@ function test_array_equal(x, y, index, eps){
             }
             msg += ')';
             console.log(msg)
-        }else if(x === undefined){
+        }else if((x === undefined) || isNaN(x)){
             equal = false;  // not equal.
             // print error message.
-            let msg = x + ' is undefined at (';
+            let msg = x + ' is invalid at (';
             for(let i = 0; i < index.length; i++){
                 if(i > 0){
                     msg += ', ';
@@ -713,7 +717,7 @@ function assertArrayEqual(x, y){
     }
 }
 
-function assertArrayNear(x, y, eps){
+function assertArrayNear(x, y, eps=0){
     if(x instanceof ndarray == false){
         x = array(x);
     }
@@ -813,7 +817,8 @@ function matrix(a, dtype=null, copy=true) {
 }
 
 var linalg = require('./linalg.js');
-module.exports = {array, zeros, ones, copy, eye, matrix,
+module.exports = {pi,
+    array, zeros, ones, copy, eye, matrix,
     add, sub, mul, div, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
     reshape, transpose, min, max, mean, argmin, argmax,
     linalg,
