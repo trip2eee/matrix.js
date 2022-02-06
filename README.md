@@ -14,6 +14,8 @@ The following methods are implemented in multidimensional array. The operations 
 - min
 - max
 - mean
+- argmin
+- argmax
 
 The following functions are implemented. Their functions do the same operations as numpy functions.
 - array

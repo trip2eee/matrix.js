@@ -751,6 +751,26 @@ function transpose(a, axes=null){
     return a.transpose(axes);
 }
 
+function min(a, axis=null){
+    return a.min(axis);
+}
+
+function max(a, axis=null){
+    return a.max(axis);
+}
+
+function mean(a, axis=null){
+    return a.mean(axis);
+}
+
+function argmin(a, axis=null){
+    return a.argmin(axis);
+}
+
+function argmax(a, axis=null){
+    return a.argmax(axis);
+}
+
 function matrix(a, dtype=null, copy=true) {
     // check array dimension.
     let dim = 0
@@ -795,7 +815,7 @@ function matrix(a, dtype=null, copy=true) {
 var linalg = require('./linalg.js');
 module.exports = {array, zeros, ones, copy, eye, matrix,
     add, sub, mul, div, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
-    reshape, transpose, 
+    reshape, transpose, min, max, mean, argmin, argmax,
     linalg,
     assertArrayEqual, assertArrayNear};
 
