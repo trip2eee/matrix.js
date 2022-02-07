@@ -788,6 +788,46 @@ function argmax(a, axis=null){
     return a.argmax(axis);
 }
 
+/**
+ * This function removes axes of length one from a.
+ * @param a (in) input array.
+ * @param axis (None or int or tuples of ints, optional) Selects a subset of the entries of length on in the shape.
+ */
+function squeeze(a, axis=null){
+    let new_shape = a.shape.slice();
+    if(Array.isArray(axis)){
+        // sort in decreasing order.
+        axis.sort((a, b) => {return b - a;});
+        for(let i = 0; i < new_shape.length; i++){
+            console.assert(1 == new_shape[axis[i]], 'The size of axis to be removed has to be 1.');
+            new_shape.splice(axis[i], 1);
+        }
+    }else{
+        console.assert(1 == new_shape[axis], 'The size of axis to be removed has to be 1.');
+        new_shape.splice(axis, 1);
+    }
+    return a.reshape(new_shape);
+}
+
+/**
+ * This function expands the shape of an array.
+ * @param a (in) input array.
+ * @param axis (int or tuple of ints) Position in the expanded axes where the new axis (or axes) is placed.
+ */
+function expand_dims(a, axis=null){
+    let new_shape = a.shape.slice();
+    if(Array.isArray(axis)){
+        // sort in increasing order.
+        axis.sort((a, b) => {return a - b;});
+        for(let i = 0; i < axis.length; i++){
+            new_shape.splice(axis[i], 0, 1);
+        }
+    }else{        
+        new_shape.splice(axis, 0, 1);
+    }
+    return a.reshape(new_shape);
+}
+
 function matrix(a, dtype=null, copy=true) {
     // check array dimension.
     let dim = 0
@@ -833,7 +873,7 @@ var linalg = require('./linalg.js');
 module.exports = {pi,
     array, zeros, ones, copy, eye, matrix,
     add, sub, mul, div, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
-    reshape, transpose, min, max, mean, argmin, argmax,
+    reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims,
     linalg,
     assertArrayEqual, assertArrayNear};
 

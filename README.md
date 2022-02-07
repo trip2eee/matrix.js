@@ -28,6 +28,7 @@ The following functions are implemented. Their functions do the same operations 
 - mul - element wise multiplication.
 - div - element wise division.
 - matmul - matrix multiplcation.
+- dot - dot product
 - sin
 - cos
 - tan
@@ -41,6 +42,10 @@ The following functions are implemented. Their functions do the same operations 
 - mean
 - argmin
 - argmax
+- squeeze
+- expand_dims
+
+### Linear Algebra
 - linalg.inv
 - linalg.solve
 

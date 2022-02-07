@@ -356,6 +356,29 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(b3, [[ 0, 1, 2], 
                                  [-3, 4, 5]]);
     }
+
+    test_squeeze(){
+        let a1 = nj.array([[[ 0, 1, 2], 
+                            [-3, 4, 5]]]);
+        let b1 = nj.squeeze(a1, 0);
+        nj.assertArrayEqual(b1, [[ 0, 1, 2], 
+                                 [-3, 4, 5]]);
+
+        let a2 = nj.array([[[[ 0], [1], [2]], 
+                            [[-3], [4], [5]]]]);
+        let b2 = nj.squeeze(a2, [0, 3]);
+        nj.assertArrayEqual(b2, [[ 0, 1, 2], 
+                                 [-3, 4, 5]]);
+    }
+
+    test_expand_dims(){
+        let a1 = nj.array([0, 1, 2]);
+        let b1 = nj.expand_dims(a1, 0);
+        nj.assertArrayEqual(b1, [[0, 1, 2]]);
+
+        let b2 = nj.expand_dims(a1, [0, 1, 3]);
+        nj.assertArrayEqual(b2, [[[[0], [1], [2]]]]);
+    }
 };
 
 let test = new ut_numjs();
