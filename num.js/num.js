@@ -398,6 +398,15 @@ function array_operation2(op1, op2, operation){
     if(op2 instanceof Array){
         op2 = new ndarray(op2);
     }
+
+    if(typeof op1 === 'number' && op2 instanceof ndarray){
+        const value = op1;
+        op1 = array_operation1(new ones(op2.shape), (x) => {return value;});
+    }else if(op1 instanceof ndarray && typeof op2 === 'number'){
+        const value = op2;
+        op2 = array_operation1(new ones(op1.shape), (x) => {return value;});
+    }
+
     console.assert(is_shape_equal(op1, op2), 'Shapes do not match.');
 
     let x = op1.flatten();
@@ -519,56 +528,56 @@ function array_operation_axis_arg(op1, axis, operation){
 function add(op1, op2){
     // this method adds op1 and op2 and returns the result in ndarray.
     // z = op1 + op2.
-    return array_operation2(op1, op2, function (x, y) {return x + y;});
+    return array_operation2(op1, op2, (x, y) => {return x + y;});
 }
 
 function sub(op1, op2){
     // this method subtracts op2 from op1 and returns the result in ndarray.
     // z = op1 - op2.
-    return array_operation2(op1, op2, function (x, y) {return x - y;});
+    return array_operation2(op1, op2, (x, y) => {return x - y;});
 }
 
 function mul(op1, op2){
     // this method performs element wise multiplication of op1 and op2 and returns the result in ndarray.
     // z = op1 * op2.
-    return array_operation2(op1, op2, function (x, y) {return x * y;});
+    return array_operation2(op1, op2, (x, y) => {return x * y;});
 }
 
 function div(op1, op2){
     // this method performs element wise division of op1 and op2 and returns the result in ndarray.
     // z = op1 / op2.
-    return array_operation2(op1, op2, function (x, y) {return x / y;});
+    return array_operation2(op1, op2, (x, y) => {return x / y;});
 }
 
 function sin(x){
-    return array_operation1(x, function (x) { return Math.sin(x);});
+    return array_operation1(x, (x) => { return Math.sin(x);});
 }
 
 function cos(x){
-    return array_operation1(x, function (x) { return Math.cos(x);});
+    return array_operation1(x, (x) => { return Math.cos(x);});
 }
 
 function tan(x){
-    return array_operation1(x, function (x) { return Math.tan(x);});
+    return array_operation1(x, (x) => { return Math.tan(x);});
 }
 
 function arcsin(x){
-    return array_operation1(x, function (x) { return Math.asin(x);});
+    return array_operation1(x, (x) => { return Math.asin(x);});
 }
 
 function arccos(x){
-    return array_operation1(x, function (x) { return Math.acos(x);});
+    return array_operation1(x, (x) => { return Math.acos(x);});
 }
 
 function arctan(x){
-    return array_operation1(x, function (x) { return Math.atan(x);});
+    return array_operation1(x, (x) => { return Math.atan(x);});
 }
 
 function arctan2(x1, x2){
-    return array_operation2(x1, x2, function (x, y) { return Math.atan2(x, y);});
+    return array_operation2(x1, x2, (x, y) => { return Math.atan2(x, y);});
 }
 
-function matmul(op1, op2){
+function dot(op1, op2){
     // this method performs matrix multiplication of op1 and op2 and returns the result in ndarray.
     // z = op1 * op2.
     if(op1 instanceof Array){
@@ -582,9 +591,6 @@ function matmul(op1, op2){
     dim_op1 = op1.shape.length;
     dim_op2 = op2.shape.length;
 
-    for(let i = 0; i < dim_op1-2; i++){
-        console.assert(op1.shape[i] == op2.shape[i], 'Shapes do not match');    
-    }
     console.assert(op1.shape[dim_op1-1] == op2.shape[dim_op2-2], 'Shapes do not match');
     
     // output shape
@@ -594,37 +600,44 @@ function matmul(op1, op2){
     let shape = op1.shape.slice();  // deep copy.
     shape[shape.length-1] = op2.shape[op2.shape.length-1];
 
-    // z[d] = x[d] + y[d]
-    let z = zeros(shape);
-    let stack_x = [op1.data];
-    let stack_y = [op2.data];
-    let stack_z = [z.data];
-    let stack_d = [0];
+    let strides = [];
+    let len_y = 1;
+    for(let i = 0; i < shape.length; i++){
+        len_y *= shape[i];
+        let s = 1;
+        for(let j = i+1; j < shape.length; j++){
+            s *= shape[j];
+        }
+        strides.push(s);
+    }
+    
+    x1 = op1.flatten();
+    x2 = op2.flatten();
+    y = Array(len_y);
+    
+    const dim_y = strides.length;
+    const dim_x1 = op1.shape.length;
+    const dim_x2 = op2.shape.length;
 
-    while(stack_z.length > 0){            
-        const x = stack_x.pop();
-        const y = stack_y.pop();
-        let z = stack_z.pop();
-        const d = stack_d.pop();
-        if(op1.shape.length > d+2){                
-            for(let i = 0; i < op1.shape[d]; i++){
-                stack_x.push(x[i]);
-                stack_y.push(y[i]);
-                stack_z.push(z[i]);
-                stack_d.push(d+1);
-            }
-        }else{
-            for(let i = 0; i < op1.shape[d]; i++){
-                for(let j = 0; j < op2.shape[d+1]; j++){
-                    for(let k = 0; k < op1.shape[d+1]; k++){
-                        z[i][j] += x[i][k] * y[k][j];
-                    }                    
-                }                
+    const stride_y = strides[dim_y-2];
+    const stride_x1 = op1.strides[dim_x1-2];
+    const stride_x2 = op2.strides[dim_x2-2];
+    
+    let i = 0;
+    while((i * stride_y) < len_y){
+        for(let j = 0; j < shape[dim_y-1]; j++){
+            y[(i * stride_y) + j] = 0;
+            for(let k = 0; k < op1.shape[dim_x1-1]; k++){
+                y[(i * stride_y) + j] += x1.data[(i * stride_x1) + k] * x2.data[(k * stride_x2) + j];
             }
         }
+        i++;
     }
-    return z;
+
+    return array(y).reshape(shape);
 }
+
+function matmul(op1, op2) {return dot(op1, op2);}
 
 /**
  * @brief Return a 2-D array with ones on the diagnoal and zeros elsewhere.
@@ -819,7 +832,7 @@ function matrix(a, dtype=null, copy=true) {
 var linalg = require('./linalg.js');
 module.exports = {pi,
     array, zeros, ones, copy, eye, matrix,
-    add, sub, mul, div, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
+    add, sub, mul, div, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
     reshape, transpose, min, max, mean, argmin, argmax,
     linalg,
     assertArrayEqual, assertArrayNear};

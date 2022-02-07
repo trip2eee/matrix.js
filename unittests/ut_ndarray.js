@@ -79,8 +79,15 @@ class ut_numjs extends ut.htest
     test_mul(){
         let a = nj.array([[1, 2], [3, 4]]);
         let b = nj.array([[1, 1], [2, 2]]);        
-        let c = nj.mul(a, b);
-        nj.assertArrayEqual(c, [[1, 2], [6, 8]]);
+        let c1 = nj.mul(a, b);
+        nj.assertArrayEqual(c1, [[1, 2], [6, 8]]);
+
+        // test broad casting
+        let c2 = nj.mul(a, 2);
+        nj.assertArrayEqual(c2, [[2, 4], [6, 8]]);
+
+        let c3 = nj.mul(2, a);
+        nj.assertArrayEqual(c3, [[2, 4], [6, 8]]);
     }
 
     test_div(){
@@ -90,9 +97,33 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(c, [[1, 2], [1.5, 2]]);
     }
 
+    test_dot(){
+        // (2,2,2,2)
+        let a = nj.array([[[[0, 1],
+                            [2, 3]],
+                           [[-3, 4],
+                            [5, 6]]],
+                          [[[ 10, 11],
+                            [12, 13]], 
+                           [[-13, 14],
+                            [15, 14]]]]);
+        // (2,2)
+        let b = nj.array([[1, 2], 
+                          [3, 4]]);
+        let c = nj.dot(a, b);
+        nj.assertArrayEqual(c, [[[[ 3,  4],
+                                  [11, 16]],
+                                 [[ 9, 10],
+                                  [23, 34]]],                              
+                                [[[43, 64],
+                                  [51, 76]],
+                                 [[29, 30],
+                                  [57, 86]]]]);        
+    }
+
     test_matmul(){
         let a = nj.array([[1, 2, 3], [4, 5, 6]]);
-        let b = nj.array([[1, 2], [3, 4], [5, 6]]);        
+        let b = nj.array([[1, 2], [3, 4], [5, 6]]);
         let c = nj.matmul(a, b);
         nj.assertArrayEqual(c, [[22, 28], [49, 64]]);
     }
