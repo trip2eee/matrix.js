@@ -357,6 +357,87 @@ class ut_numjs extends ut.htest
                                  [-3, 4, 5]]);
     }
 
+    test_sum(){
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]]]);
+        let b1 = a.sum();
+        nj.assertArrayEqual(b1, [[3, 6]]);
+
+        let b2 = a.sum(1);
+        nj.assertArrayEqual(b2, [[-3, 5, 7]]);
+
+        let b3 = a.sum(0);
+        nj.assertArrayEqual(b3, [[ 0, 1, 2], 
+                                 [-3, 4, 5]]);
+    }
+
+    test_clip(){
+        let a = nj.array([[[-3, -2, -1], 
+                           [ 1,  2, 3]]]);
+        let b1 = a.clip(-1, 2);
+        nj.assertArrayEqual(b1, [[[-1, -1, -1], 
+                                  [ 1, 2, 2]]]);
+        
+        let b2 = a.clip(-1);
+        nj.assertArrayEqual(b2, [[[-1, -1, -1], 
+                                  [ 1, 2, 3]]]);
+        
+        let b3 = a.clip(null, 2);
+        nj.assertArrayEqual(b3, [[[-3, -2, -1], 
+                                  [ 1, 2, 2]]]);
+    }
+
+    test_var(){
+        // test for var() and std().
+        let a = nj.array([[[ 0, 1, 2], 
+                           [-3, 4, 5]],
+                          [[ 10, 11, 12], 
+                           [-13, 14, 15]]]);
+        let b1 = a.std(2);
+        nj.assertArrayNear(b1, [[0.81649658,  3.55902608],
+                                 [0.81649658, 12.97005097]], 1e-6);
+        
+        let b2 = a.var(1);
+        nj.assertArrayNear(b2, [[  2.25, 2.25, 2.25],
+                                [132.25, 2.25, 2.25]], 1e-6);
+
+        let b3 = a.var(0);
+        nj.assertArrayNear(b3, [[25, 25, 25],
+                                [25, 25, 25]], 1e-6);
+    }
+
+    test_sort(){
+        let a = nj.array([[[0, 1,  2], 
+                           [5, 4, -3]],
+                          [[-13, 14, 15], 
+                           [ 10, 11, -12]],
+                          [[ 1, 10, 20],
+                           [20, 30, 60]]]);
+        let b1 = nj.sort(a, 2);
+        nj.assertArrayEqual(b1, [[[  0,  1,  2],
+                                  [ -3,  4,  5]],
+                                 [[-13, 14, 15],
+                                  [-12, 10, 11]],
+                                 [[  1, 10, 20],
+                                  [ 20, 30, 60]]]);
+
+        let b2 = nj.sort(a, 1);
+        nj.assertArrayEqual(b2, [[[  0,  1, -3],
+                                  [  5,  4,  2]],
+                                 [[-13, 11,-12],
+                                  [ 10, 14, 15]],
+                                 [[  1, 10, 20],
+                                  [ 20, 30, 60]]]);
+
+        let b3 = nj.sort(a, 0);
+        nj.assertArrayEqual(b3, [[[-13,  1,   2]
+                                  [  5,  4, -12]]
+                                 [[  0, 10,  15]
+                                  [ 10, 11,  -3]]
+                                 [[  1, 14,  20]
+                                  [ 20, 30,  60]]]);
+    }
+
     test_squeeze(){
         let a1 = nj.array([[[ 0, 1, 2], 
                             [-3, 4, 5]]]);
@@ -379,6 +460,13 @@ class ut_numjs extends ut.htest
         let b2 = nj.expand_dims(a1, [0, 1, 3]);
         nj.assertArrayEqual(b2, [[[[0], [1], [2]]]]);
     }
+    
+    test_linspace(){
+        let a = nj.linspace(1, 10, 10);
+        nj.assertArrayEqual(a, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    }
+
+    
 };
 
 let test = new ut_numjs();

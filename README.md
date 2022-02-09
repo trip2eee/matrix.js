@@ -13,7 +13,11 @@ The following methods are implemented in multidimensional array. The operations 
 - transpose
 - min
 - max
+- sum
 - mean
+- std
+- var
+- clip
 - argmin
 - argmax
 

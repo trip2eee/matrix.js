@@ -20,13 +20,11 @@ class ndarray{
                 this.strides.push(1);
                 v = v[0];
             }
-            
-            // compute stride.
-            for(let i = 0; i < this.shape.length; i++){
-                for(let j = i+1; j < this.shape.length; j++){
-                    this.strides[i] *= this.shape[j];
-                }                
+
+            for(let i = (this.shape.length-2); i >= 0; i--){
+                this.strides[i] = this.shape[i + 1] * this.strides[i + 1];
             }
+            
             // to access value by ndarray[i].
             for(let i=0; i < data.length; i++){
                 this[i] = data[i];
@@ -166,37 +164,99 @@ class ndarray{
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis(this, axis, function (x, y){ return (x > y) ? x : y;});
+        return array_operation_axis(this, axis, (x, y) => { return (x > y) ? x : y;});
     }
 
     min(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis(this, axis, function (x, y){ return (x < y) ? x : y;});
+        return array_operation_axis(this, axis, (x, y) => { return (x < y) ? x : y;});
     }
 
     mean(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        let z = array_operation_axis(this, axis, function (x, y){ return (x + y);});
+        let z = array_operation_axis(this, axis, (x, y) => { return (x + y);});
         const denom = this.shape[axis];
-        return array_operation1(z, function(x){ return x / denom;});
+        return array_operation1(z, (x) => { return x / denom;});
     }
 
+    sum(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        return array_operation_axis(this, axis, (x, y) => { return (x + y);});
+    }
+    
     argmax(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis_arg(this, axis, function (x, y){ return (x < y);});
+        return array_operation_axis_arg(this, axis, (x, y) => { return (x < y);});
     }
 
     argmin(axis=null){
         if(null === axis){
             axis = this.shape.length-1;
         }
-        return array_operation_axis_arg(this, axis, function (x, y){ return (x > y);});
+        return array_operation_axis_arg(this, axis, (x, y) => { return (x > y);});
+    }
+
+    clip(min=null, max=null){
+        if(null !== min && null !== max){
+            return array_operation1(this, (x) => {return Math.max(min, Math.min(max, x));});
+        }else if(null !== min){
+            return array_operation1(this, (x) => {return Math.max(min, x);});
+        }else if(null !== max){
+            return array_operation1(this, (x) => {return Math.min(max, x);});
+        }
+    }
+
+    std(axis=null){
+        return array_var(this, axis, true);
+    }
+
+    var(axis=null){
+        return array_var(this, axis, false);
+    }
+
+    #bottomUpMerge(a, ileft, iright, iend, buff){
+        let i = ileft;
+        let j = iright;
+        for(let k = ileft; k < iend; k++){
+            if(i < iright && (j >= iend || a[i] <= a[j])){
+                buff[k] = a[i];
+                i++;
+            }else{
+                buff[k] = a[j];
+                j++;
+            }
+        }
+    }
+
+    sort(axis=null){
+        if(null === axis){
+            axis = this.shape.length-1;
+        }
+        const num_data = this.shape[axis];
+        let a = copy(this);
+        let buff = new Array(num_data);
+        
+        // bottom-up merge sort.
+        for(let width = 1; width < num_data; width *= 2){
+            for(let i = 0; i < num_data; i += (2*width)){
+                this.#bottomUpMerge(a.data, i, Math.min(i+width, num_data), Math.min(i+(2*width), num_data), buff);
+            }
+            // copy array.
+            a.data = buff.slice();
+        }
+
+        for(let i = 0; i < num_data; i++){
+            a[i] = a.data[i];
+        }
+        return a;
     }
 
     toString(){
@@ -454,8 +514,7 @@ function array_operation_axis(op1, axis, operation){
     let flat_x = op1.flatten();
     let flat_y = new ndarray(Array(len_y));
     let idx_offset = 0;
-    for(let i = 0; i < flat_x.shape[0]; i++){
-
+    for(let i = 0; i < flat_y.shape[0]; i++){
         flat_y.data[i] = flat_x.data[idx_offset];
         for(let j = 1; j < op1.shape[axis]; j++){
             flat_y.data[i] = operation(flat_x.data[idx_offset + (j * op1.strides[axis])], flat_y.data[i]);
@@ -470,9 +529,62 @@ function array_operation_axis(op1, axis, operation){
             }
         }
     }
+    return flat_y.reshape(new_shape);
+}
 
-    let y = flat_y.reshape(new_shape);    
-    return y
+function array_var(op1, axis, sqrt){
+    if(op1 instanceof Array){
+        op1 = new ndarray(op1);
+    }
+
+    let new_shape = [];
+    let len_y = 1;
+    for(let i = 0; i < op1.shape.length; i++){
+        if(i != axis){
+            new_shape.push(op1.shape[i]);
+            len_y *= op1.shape[i];    
+        }
+    }
+    
+    let flat_x = op1.flatten();
+    let sum_x = new Array(len_y);
+    let sum_sqr_x = new Array(len_y);
+
+    let flat_y = new ndarray(Array(len_y));
+    let idx_offset = 0;
+    for(let i = 0; i < sum_x.length; i++){
+        sum_x[i] = flat_x.data[idx_offset];
+        sum_sqr_x[i] = flat_x.data[idx_offset] * flat_x.data[idx_offset];
+        for(let j = 1; j < op1.shape[axis]; j++){
+            const x = flat_x.data[idx_offset + (j * op1.strides[axis])];
+            sum_x[i] += x
+            sum_sqr_x[i] += x*x;
+        }
+        
+        if(axis == (op1.shape.length-1)){
+            idx_offset += op1.shape[axis];
+        }else{
+            idx_offset += 1;
+            if((idx_offset % op1.strides[axis]) == 0){
+                idx_offset += op1.strides[axis];
+            }
+        }
+    }
+
+    if(true==sqrt){
+        for(let i = 0; i < sum_x.length; i++){
+            const m = sum_x[i] / op1.shape[axis];
+            const m2 = sum_sqr_x[i] / op1.shape[axis];
+            flat_y.data[i] = Math.sqrt(m2 - (m*m));
+        }    
+    }else{
+        for(let i = 0; i < sum_x.length; i++){
+            const m = sum_x[i] / op1.shape[axis];
+            const m2 = sum_sqr_x[i] / op1.shape[axis];
+            flat_y.data[i] = m2 - (m*m);    
+        }
+    }
+    return flat_y.reshape(new_shape);
 }
 
 function array_operation_axis_arg(op1, axis, operation){
@@ -499,7 +611,7 @@ function array_operation_axis_arg(op1, axis, operation){
     }
 
     let idx_offset = 0;
-    for(let i = 0; i < flat_x.shape[0]; i++){
+    for(let i = 0; i < flat_y.shape[0]; i++){
         flat_y.data[i] = flat_x.data[idx_offset];
 
         for(let j = 1; j < op1.shape[axis]; j++){
@@ -507,9 +619,8 @@ function array_operation_axis_arg(op1, axis, operation){
                 flat_y.data[i] = flat_x.data[idx_offset + (j * op1.strides[axis])];
                 flat_arg.data[i] = j;
             }
-            
         }
-        
+
         if(axis == (op1.shape.length-1)){
             idx_offset += op1.shape[axis];
         }else{
@@ -519,9 +630,7 @@ function array_operation_axis_arg(op1, axis, operation){
             }
         }
     }
-
-    let arg = flat_arg.reshape(new_shape);    
-    return arg
+    return flat_arg.reshape(new_shape);
 }
 
 
@@ -604,11 +713,10 @@ function dot(op1, op2){
     let len_y = 1;
     for(let i = 0; i < shape.length; i++){
         len_y *= shape[i];
-        let s = 1;
-        for(let j = i+1; j < shape.length; j++){
-            s *= shape[j];
-        }
-        strides.push(s);
+        strides.push(1);
+    }
+    for(let i = (shape.length-2); i >= 0; i--){
+        strides[i] = shape[i + 1] * strides[i + 1];
     }
     
     x1 = op1.flatten();
@@ -828,6 +936,36 @@ function expand_dims(a, axis=null){
     return a.reshape(new_shape);
 }
 
+/**
+ * This function returns evenly spaced numbers over specified interval.
+ * @param start (in) The starting value of the sequence.
+ * @param stop (in) The end value of the sequence.
+ * @param num (int) Number of samples to generate. Default is 50. Must be non-negative.
+ */
+function linspace(start, stop, num=50){
+    let y = Array(num);
+    const step = (stop - start) / (num - 1);
+    for(let i = 0; i < num; i++){
+        y[i] = start + (step * i);
+    }
+    return array(y);
+}
+
+/**
+ * This function returns coordinate matrices from coordinate vectors.
+ * @param xi (in) 1-D arrays representing the coordingate of a grid.
+ */
+function meshgrid(xi){
+    if(Array.isArray(xi)){
+        const dim = xi.length;
+        
+    }
+}
+
+function sort(a, axis=null){
+    return copy(a).sort(axis);
+}
+
 function matrix(a, dtype=null, copy=true) {
     // check array dimension.
     let dim = 0
@@ -873,7 +1011,7 @@ var linalg = require('./linalg.js');
 module.exports = {pi,
     array, zeros, ones, copy, eye, matrix,
     add, sub, mul, div, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
-    reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims,
+    reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims, linspace, sort,
     linalg,
     assertArrayEqual, assertArrayNear};
 
