@@ -438,6 +438,39 @@ class ut_numjs extends ut.htest
                                   [ 20, 30,  60]]]);
     }
 
+    test_argsort(){
+        let a = nj.array([[[0, 1,  2], 
+                           [5, 4, -3]],
+                          [[-13, 14, 15], 
+                           [ 10, 11, -12]],
+                          [[ 1, 10, 20],
+                           [20, 30, 60]]]);
+
+        let b1 = nj.argsort(a, 2);
+        nj.assertArrayEqual(b1, [[[0, 1, 2],
+                                  [2, 1, 0]],
+                                 [[0, 1, 2],
+                                  [2, 0, 1]],
+                                 [[0, 1, 2],
+                                  [0, 1, 2]]]);
+
+        let b2 = nj.argsort(a, 1);
+        nj.assertArrayEqual(b2, [[[0, 0, 1],
+                                  [1, 1, 0]],
+                                 [[0, 1, 1],
+                                  [1, 0, 0]],
+                                 [[0, 0, 0],
+                                  [1, 1, 1]]]);
+
+        let b3 = nj.argsort(a, 0);
+        nj.assertArrayEqual(b3, [[[1, 0, 0],
+                                  [0, 0, 1]],
+                                 [[0, 2, 1],
+                                  [ 1, 1, 0]],
+                                 [[2, 1, 2],
+                                  [2, 2, 2]]]);
+    }
+
     test_squeeze(){
         let a1 = nj.array([[[ 0, 1, 2], 
                             [-3, 4, 5]]]);

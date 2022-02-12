@@ -20,6 +20,7 @@ The following methods are implemented in multidimensional array. The operations 
 - clip
 - argmin
 - argmax
+- sort
 
 The following functions are implemented. Their functions do the same operations as numpy functions.
 - array
@@ -46,6 +47,8 @@ The following functions are implemented. Their functions do the same operations 
 - mean
 - argmin
 - argmax
+- sort
+- argsort
 - squeeze
 - expand_dims
 

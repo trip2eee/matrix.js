@@ -985,6 +985,72 @@ function sort(a, axis=null){
     return y;
 }
 
+
+function bottomUpMergeArg(a, ileft, iright, iend, idx_offset, stride, arg, buff){
+    let i = ileft;
+    let j = iright;
+    for(let k = ileft; k < iend; k++){
+        const ai = arg[idx_offset + (i*stride)];
+        const aj = arg[idx_offset + (j*stride)];
+        if(i < iright && (j >= iend || a[idx_offset + (ai*stride)] <= a[idx_offset + (aj*stride)])){
+            buff[k] = ai;
+            i++;
+        }else{
+            buff[k] = aj;
+            j++;
+        }
+    }
+}
+
+function argsort(a, axis=null){
+    if(null === axis){
+        axis = a.shape.length-1;
+    }
+    const dim_axis = a.shape[axis];
+    
+    let a_flat = copy(a).flatten();
+    let buff = new Array(dim_axis);
+    
+    let len_data = 1;
+    for(let i = 0; i < a.shape.length; i++){
+        len_data *= a.shape[i];
+    }
+    
+    let arg = new Array(len_data);
+
+    // bottom-up merge sort.
+    let idx_offset = 0;
+    const stride = a.strides[axis];
+    while((idx_offset + stride) < len_data){
+        
+        for(let i = 0; i < dim_axis; i++){
+            arg[idx_offset + (i*stride)] = i;
+        }
+    
+        for(let width = 1; width < dim_axis; width *= 2){
+            for(let i = 0; i < dim_axis; i += (2*width)){
+                bottomUpMergeArg(a_flat.data, i, Math.min(i+width, dim_axis), Math.min(i+(2*width), dim_axis), idx_offset, stride, arg, buff);
+            }
+
+            // copy array.
+            for(let i = 0; i < dim_axis; i++){
+                arg[idx_offset + (i*stride)] = buff[i];
+            }
+        }
+
+        if(axis == a.shape.length-1){
+            idx_offset += a.shape[axis];
+        }else{
+            idx_offset += 1;
+            if((idx_offset % a.strides[axis]) == 0){
+                idx_offset += a.strides[axis];
+            }
+        }
+    }
+    return new ndarray(arg).reshape(a.shape);
+}
+
+
 function matrix(a, dtype=null, copy=true) {
     // check array dimension.
     let dim = 0
@@ -1030,7 +1096,7 @@ var linalg = require('./linalg.js');
 module.exports = {pi,
     array, zeros, ones, copy, eye, matrix,
     add, sub, mul, div, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
-    reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims, linspace, sort,
+    reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims, linspace, sort, argsort,
     linalg,
     assertArrayEqual, assertArrayNear};
 
