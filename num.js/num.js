@@ -222,15 +222,15 @@ class ndarray{
         return array_var(this, axis, false);
     }
 
-    #bottomUpMerge(a, ileft, iright, iend, buff){
+    #bottomUpMerge(a, ileft, iright, iend, idx_offset, stride, buff){
         let i = ileft;
         let j = iright;
         for(let k = ileft; k < iend; k++){
-            if(i < iright && (j >= iend || a[i] <= a[j])){
-                buff[k] = a[i];
+            if(i < iright && (j >= iend || a[idx_offset + (i*stride)] <= a[idx_offset + (j*stride)])){
+                buff[k] = a[idx_offset + (i*stride)];
                 i++;
             }else{
-                buff[k] = a[j];
+                buff[k] = a[idx_offset + (j*stride)];
                 j++;
             }
         }
@@ -240,23 +240,40 @@ class ndarray{
         if(null === axis){
             axis = this.shape.length-1;
         }
-        const num_data = this.shape[axis];
-        let a = copy(this);
-        let buff = new Array(num_data);
+        const dim_axis = this.shape[axis];
+        let a = this.flatten();
+        let buff = new Array(dim_axis);
         
-        // bottom-up merge sort.
-        for(let width = 1; width < num_data; width *= 2){
-            for(let i = 0; i < num_data; i += (2*width)){
-                this.#bottomUpMerge(a.data, i, Math.min(i+width, num_data), Math.min(i+(2*width), num_data), buff);
-            }
-            // copy array.
-            a.data = buff.slice();
+        let len_data = 1;
+        for(let i = 0; i < this.shape.length; i++){
+            len_data *= this.shape[i];
         }
 
-        for(let i = 0; i < num_data; i++){
-            a[i] = a.data[i];
+        // bottom-up merge sort.
+        let idx_offset = 0;
+        const stride = this.strides[axis];
+        while((idx_offset + stride) < len_data){
+            for(let width = 1; width < dim_axis; width *= 2){
+                for(let i = 0; i < dim_axis; i += (2*width)){
+                    this.#bottomUpMerge(a.data, i, Math.min(i+width, dim_axis), Math.min(i+(2*width), dim_axis), idx_offset, stride, buff);
+                }
+
+                // copy array.
+                for(let i = 0; i < dim_axis; i++){
+                    a.data[idx_offset + (i*stride)] = buff[i];
+                }
+            }
+
+            if(axis == this.shape.length-1){
+                idx_offset += this.shape[axis];
+            }else{
+                idx_offset += 1;
+                if((idx_offset % this.strides[axis]) == 0){
+                    idx_offset += this.strides[axis];
+                }
+            }
         }
-        return a;
+        this.data = a.reshape(this.shape).data
     }
 
     toString(){
@@ -963,7 +980,9 @@ function meshgrid(xi){
 }
 
 function sort(a, axis=null){
-    return copy(a).sort(axis);
+    let y = copy(a);
+    y.sort(axis);
+    return y;
 }
 
 function matrix(a, dtype=null, copy=true) {
