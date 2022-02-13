@@ -13,9 +13,10 @@ class ndarray{
         if(Array.isArray(data)){
             this.shape = [];
             this.strides = [];
-
+            this.size = 1;
             let v = data;
             while(Array.isArray(v)){
+                this.size *= v.length;
                 this.shape.push(v.length);
                 this.strides.push(1);
                 v = v[0];
@@ -46,10 +47,6 @@ class ndarray{
      * @return ndarray. A copy of the input array, flattened to one dimension.
      */
     flatten(){
-        let len = 1;
-        for(let i = 0; i < this.shape.length; i++){
-            len *= this.shape[i];
-        }
         let y_flat = [];
         let stack_x = [this.data];
         let stack_d = [0];
@@ -125,7 +122,6 @@ class ndarray{
             shape[i] = this.shape[axes[i]];
         }
         let z = zeros(shape);
-
         let stack_y = [z.data];
         let stack_d = [0];
         let src = new Array(this.shape.length);
@@ -243,16 +239,11 @@ class ndarray{
         const dim_axis = this.shape[axis];
         let a = this.flatten();
         let buff = new Array(dim_axis);
-        
-        let len_data = 1;
-        for(let i = 0; i < this.shape.length; i++){
-            len_data *= this.shape[i];
-        }
 
         // bottom-up merge sort.
         let idx_offset = 0;
         const stride = this.strides[axis];
-        while((idx_offset + stride) < len_data){
+        while((idx_offset + stride) < this.size){
             for(let width = 1; width < dim_axis; width *= 2){
                 for(let i = 0; i < dim_axis; i += (2*width)){
                     this.#bottomUpMerge(a.data, i, Math.min(i+width, dim_axis), Math.min(i+(2*width), dim_axis), idx_offset, stride, buff);
@@ -295,8 +286,7 @@ class ndarray{
                 str += ']';
             }
             if( i > 0){
-                str += ',';
-                str += '\n';
+                str += ',\n';
             }
             if(d < (shape.length-1)){
                 for(let i = (shape[d]-1); i >= 0; i--){                    
@@ -321,7 +311,6 @@ class ndarray{
             str += ']';
         }
         str += '\n)';
-
         return str;
     }
 };
@@ -424,7 +413,6 @@ function ones(shape){
     return result;
 }
 
-
 function is_shape_equal(op1, op2){
     let same_shape = true;
     if(op1.shape.length == op2.shape.length){
@@ -520,16 +508,14 @@ function array_operation_axis(op1, axis, operation){
     }
 
     let new_shape = [];
-    let len_y = 1;
     for(let i = 0; i < op1.shape.length; i++){
         if(i != axis){
             new_shape.push(op1.shape[i]);
-            len_y *= op1.shape[i];    
         }
     }
     
     let flat_x = op1.flatten();
-    let flat_y = new ndarray(Array(len_y));
+    let flat_y = new ndarray(Array(op1.size));
     let idx_offset = 0;
     for(let i = 0; i < flat_y.shape[0]; i++){
         flat_y.data[i] = flat_x.data[idx_offset];
@@ -555,19 +541,16 @@ function array_var(op1, axis, sqrt){
     }
 
     let new_shape = [];
-    let len_y = 1;
     for(let i = 0; i < op1.shape.length; i++){
         if(i != axis){
             new_shape.push(op1.shape[i]);
-            len_y *= op1.shape[i];    
         }
     }
     
     let flat_x = op1.flatten();
-    let sum_x = new Array(len_y);
-    let sum_sqr_x = new Array(len_y);
-
-    let flat_y = new ndarray(Array(len_y));
+    let sum_x = new Array(op1.size);
+    let sum_sqr_x = new Array(op1.size);
+    let flat_y = new ndarray(Array(op1.size));
     let idx_offset = 0;
     for(let i = 0; i < sum_x.length; i++){
         sum_x[i] = flat_x.data[idx_offset];
@@ -612,17 +595,15 @@ function array_operation_axis_arg(op1, axis, operation){
     }
 
     let new_shape = [];
-    let len_y = 1;
     for(let i = 0; i < op1.shape.length; i++){
         if(i != axis){
             new_shape.push(op1.shape[i]);
-            len_y *= op1.shape[i];    
         }
     }
     
     let flat_x = op1.flatten();
-    let flat_y = new ndarray(Array(len_y));
-    let flat_arg = new ndarray(Array(len_y));
+    let flat_y = new ndarray(Array(op1.size));
+    let flat_arg = new ndarray(Array(op1.size));
     for(let i = 0; i < flat_y.shape[0]; i++){
         flat_arg.data[i] = 0;
     }
@@ -657,22 +638,55 @@ function add(op1, op2){
     return array_operation2(op1, op2, (x, y) => {return x + y;});
 }
 
-function sub(op1, op2){
+function subtract(op1, op2){
     // this method subtracts op2 from op1 and returns the result in ndarray.
     // z = op1 - op2.
     return array_operation2(op1, op2, (x, y) => {return x - y;});
 }
 
-function mul(op1, op2){
+function multiply(op1, op2){
     // this method performs element wise multiplication of op1 and op2 and returns the result in ndarray.
     // z = op1 * op2.
     return array_operation2(op1, op2, (x, y) => {return x * y;});
 }
 
-function div(op1, op2){
+function divide(op1, op2){
     // this method performs element wise division of op1 and op2 and returns the result in ndarray.
     // z = op1 / op2.
     return array_operation2(op1, op2, (x, y) => {return x / y;});
+}
+
+function power(op1, op2){
+    // z = op1 ^ op2.
+    return array_operation2(op1, op2, (x, y) => {return Math.pow(x, y);});
+}
+
+function exp(x){
+    return array_operation1(x, (x) => { return Math.exp(x);});
+}
+
+function log(x){
+    return array_operation1(x, (x) => { return Math.log(x);});
+}
+
+function log10(x){
+    return array_operation1(x, (x) => { return Math.log10(x);});
+}
+
+function log2(x){
+    return array_operation1(x, (x) => { return Math.log2(x);});
+}
+
+function sqrt(x){
+    return array_operation1(x, (x) => { return Math.sqrt(x);});
+}
+
+function fabs(x){
+    return array_operation1(x, (x) => { return Math.fabs(x);});
+}
+
+function sign(x){
+    return array_operation1(x, (x) => { return Math.sign(x);});
 }
 
 function sin(x){
@@ -727,9 +741,7 @@ function dot(op1, op2){
     shape[shape.length-1] = op2.shape[op2.shape.length-1];
 
     let strides = [];
-    let len_y = 1;
     for(let i = 0; i < shape.length; i++){
-        len_y *= shape[i];
         strides.push(1);
     }
     for(let i = (shape.length-2); i >= 0; i--){
@@ -738,7 +750,7 @@ function dot(op1, op2){
     
     x1 = op1.flatten();
     x2 = op2.flatten();
-    y = Array(len_y);
+    y = Array(op1.size);
     
     const dim_y = strides.length;
     const dim_x1 = op1.shape.length;
@@ -749,7 +761,7 @@ function dot(op1, op2){
     const stride_x2 = op2.strides[dim_x2-2];
     
     let i = 0;
-    while((i * stride_y) < len_y){
+    while((i * stride_y) < op1.size){
         for(let j = 0; j < shape[dim_y-1]; j++){
             y[(i * stride_y) + j] = 0;
             for(let k = 0; k < op1.shape[dim_x1-1]; k++){
@@ -973,10 +985,38 @@ function linspace(start, stop, num=50){
  * @param xi (in) 1-D arrays representing the coordingate of a grid.
  */
 function meshgrid(xi){
+    let dim = 2;
     if(Array.isArray(xi)){
-        const dim = xi.length;
-        
+        dim = xi.length;
     }
+    console.assert(dim == 2);
+
+    let shape = [];
+    for(let i = dim-1; i >= 0; i--){
+        shape.push(xi[i].size);
+    }
+    
+    let ys = [];
+    for(let d = 0; d < dim; d++){
+        let y = zeros(shape);
+
+        if(d == 0){
+            for(let i = 0; i < shape[0]; i++){
+                for(let j = 0; j < shape[1]; j++){
+                    y[i][j] = xi[d][j];
+                }
+            }
+        }else{
+            for(let i = 0; i < shape[0]; i++){
+                for(let j = 0; j < shape[1]; j++){
+                    y[i][j] = xi[d][i];
+                }
+            }
+        }
+        
+        ys.push(y);
+    }    
+    return ys;
 }
 
 function sort(a, axis=null){
@@ -1095,9 +1135,11 @@ function matrix(a, dtype=null, copy=true) {
 var linalg = require('./linalg.js');
 module.exports = {pi,
     array, zeros, ones, copy, eye, matrix,
-    add, sub, mul, div, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
+    add, subtract, multiply, divide, power, dot, matmul, sin, cos, tan, arcsin, arccos, arctan, arctan2,
     reshape, transpose, min, max, mean, argmin, argmax, squeeze, expand_dims, linspace, sort, argsort,
+    exp, log, log10, log2, sqrt, fabs, sign, meshgrid,
     linalg,
     assertArrayEqual, assertArrayNear};
 
 
+    

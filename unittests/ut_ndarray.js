@@ -69,32 +69,39 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(c2, [2, 3, 5, 6]);
     }
 
-    test_sub(){
+    test_subtract(){
         let a = nj.array([[1, 2], [3, 4]]);
         let b = nj.array([[1, 1], [2, 2]]);        
-        let c = nj.sub(a, b);
+        let c = nj.subtract(a, b);
         nj.assertArrayEqual(c, [[0, 1], [1, 2]]);
     }
 
-    test_mul(){
+    test_multiply(){
         let a = nj.array([[1, 2], [3, 4]]);
         let b = nj.array([[1, 1], [2, 2]]);        
-        let c1 = nj.mul(a, b);
+        let c1 = nj.multiply(a, b);
         nj.assertArrayEqual(c1, [[1, 2], [6, 8]]);
 
         // test broad casting
-        let c2 = nj.mul(a, 2);
+        let c2 = nj.multiply(a, 2);
         nj.assertArrayEqual(c2, [[2, 4], [6, 8]]);
 
-        let c3 = nj.mul(2, a);
+        let c3 = nj.multiply(2, a);
         nj.assertArrayEqual(c3, [[2, 4], [6, 8]]);
     }
 
-    test_div(){
+    test_divide(){
         let a = nj.array([[1, 2], [3, 4]]);
         let b = nj.array([[1, 1], [2, 2]]);        
-        let c = nj.div(a, b);
+        let c = nj.divide(a, b);
         nj.assertArrayEqual(c, [[1, 2], [1.5, 2]]);
+    }
+
+    test_power(){
+        let a = nj.array([[1, 2], [3, 4]]);
+        let b = nj.array([[1, 1], [2, 2]]);        
+        let c = nj.power(a, b);
+        nj.assertArrayEqual(c, [[1, 2], [9, 16]]);
     }
 
     test_dot(){
@@ -499,7 +506,14 @@ class ut_numjs extends ut.htest
         nj.assertArrayEqual(a, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     }
 
-    
+    test_meshgrid(){
+        let x = nj.linspace(0, 9, 2);
+        let y = nj.linspace(0, 5, 3);
+        let a = nj.meshgrid([x, y]);
+        nj.assertArrayEqual(a[0], [[0, 9], [0, 9], [0, 9]]);
+        nj.assertArrayEqual(a[1], [[0, 0], [2.5, 2.5], [5, 5]]);
+
+    }    
 };
 
 let test = new ut_numjs();

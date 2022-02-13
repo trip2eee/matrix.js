@@ -29,9 +29,17 @@ The following functions are implemented. Their functions do the same operations 
 - copy
 - eye
 - add - element wise addition.
-- sub - element wise subtraction.
-- mul - element wise multiplication.
-- div - element wise division.
+- subtract - element wise subtraction.
+- multiply - element wise multiplication.
+- divide - element wise division.
+- power
+- exp
+- log
+- log10
+- log2
+- sqrt
+- fabs
+- sign
 - matmul - matrix multiplcation.
 - dot - dot product
 - sin
@@ -51,6 +59,7 @@ The following functions are implemented. Their functions do the same operations 
 - argsort
 - squeeze
 - expand_dims
+- meshgrid - 2-D only.
 
 ### Linear Algebra
 - linalg.inv
